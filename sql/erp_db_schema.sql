@@ -4,13 +4,13 @@ USE erp_db;
 
 -- Students Table
 CREATE TABLE students (
-    student_id INT AUTO_INCREMENT PRIMARY KEY,
+    roll_no INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT UNIQUE NOT NULL,
-    first_name VARCHAR(50) NOT NULL,
-    last_name VARCHAR(50) NOT NULL,
+    Name VARCHAR(50) NOT NULL,
     email VARCHAR(100) UNIQUE NOT NULL,
     phone VARCHAR(15),
-    enrollment_date DATE NOT NULL,
+    program VARCHAR(50)
+    year INT NOT NULL,
     INDEX idx_user_id (user_id)
 );
 
@@ -18,8 +18,7 @@ CREATE TABLE students (
 CREATE TABLE instructors (
     instructor_id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT UNIQUE NOT NULL,
-    first_name VARCHAR(50) NOT NULL,
-    last_name VARCHAR(50) NOT NULL,
+    Name VARCHAR(50) NOT NULL,
     email VARCHAR(100) UNIQUE NOT NULL,
     phone VARCHAR(15),
     department VARCHAR(100),
@@ -40,7 +39,7 @@ CREATE TABLE courses (
 CREATE TABLE sections (
     section_id INT AUTO_INCREMENT PRIMARY KEY,
     course_id INT NOT NULL,
-    section_number VARCHAR(10) NOT NULL,
+    section_name VARCHAR(10) NOT NULL,
     instructor_id INT,
     semester VARCHAR(20) NOT NULL,
     year INT NOT NULL,

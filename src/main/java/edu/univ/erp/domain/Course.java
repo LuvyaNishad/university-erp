@@ -2,34 +2,40 @@ package edu.univ.erp.domain;
 
 public class Course {
     private int courseId;
-    private String code;
-    private String title;
+    private String courseCode;
+    private String courseName;
     private int credits;
+    private String description;
 
+    // Constructors
     public Course() {}
 
-    public Course(int courseId, String code, String title, int credits) {
+    public Course(int courseId, String courseCode, String courseName, int credits, String description) {
         this.courseId = courseId;
-        this.code = code;
-        this.title = title;
+        this.courseCode = courseCode;
+        this.courseName = courseName;
         this.credits = credits;
+        this.description = description;
     }
 
-    // Getters and setters
+    // Getters and Setters
     public int getCourseId() { return courseId; }
     public void setCourseId(int courseId) { this.courseId = courseId; }
 
-    public String getCode() { return code; }
-    public void setCode(String code) { this.code = code; }
+    public String getCourseCode() { return courseCode; }
+    public void setCourseCode(String courseCode) { this.courseCode = courseCode; }
 
-    public String getTitle() { return title; }
-    public void setTitle(String title) { this.title = title; }
+    public String getCourseName() { return courseName; }
+    public void setCourseName(String courseName) { this.courseName = courseName; }
 
     public int getCredits() { return credits; }
     public void setCredits(int credits) { this.credits = credits; }
 
+    public String getDescription() { return description; }
+    public void setDescription(String description) { this.description = description; }
+
     @Override
     public String toString() {
-        return "Course{code='" + code + "', title='" + title + "', credits=" + credits + "}";
+        return courseCode + " - " + courseName + " (" + credits + " credits)";
     }
 }
