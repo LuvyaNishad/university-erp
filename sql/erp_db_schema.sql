@@ -9,7 +9,7 @@ CREATE TABLE students (
     Name VARCHAR(50) NOT NULL,
     email VARCHAR(100) UNIQUE NOT NULL,
     phone VARCHAR(15),
-    program VARCHAR(50)
+    program VARCHAR(50),
     year INT NOT NULL,
     INDEX idx_user_id (user_id)
 );
@@ -47,7 +47,7 @@ CREATE TABLE sections (
     current_enrollment INT DEFAULT 0,
     schedule VARCHAR(100),
     room VARCHAR(50),
-    UNIQUE KEY unique_section (course_id, section_number, semester, year),
+    UNIQUE KEY unique_section (course_id, section_name, semester, year),
     FOREIGN KEY (course_id) REFERENCES courses(course_id) ON DELETE CASCADE,
     FOREIGN KEY (instructor_id) REFERENCES instructors(instructor_id) ON DELETE SET NULL,
     INDEX idx_instructor (instructor_id),
@@ -57,15 +57,15 @@ CREATE TABLE sections (
 -- Enrollments Table
 CREATE TABLE enrollments (
     enrollment_id INT AUTO_INCREMENT PRIMARY KEY,
-    student_id INT NOT NULL,
+    roll_no INT NOT NULL,
     section_id INT NOT NULL,
     enrollment_status ENUM('ENROLLED', 'DROPPED', 'COMPLETED') DEFAULT 'ENROLLED',
     enrollment_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     drop_date TIMESTAMP NULL,
-    UNIQUE KEY unique_enrollment (student_id, section_id),
-    FOREIGN KEY (student_id) REFERENCES students(student_id) ON DELETE CASCADE,
+    UNIQUE KEY unique_enrollment (roll_no, section_id),
+    FOREIGN KEY (roll_no) REFERENCES students(roll_no) ON DELETE CASCADE,
     FOREIGN KEY (section_id) REFERENCES sections(section_id) ON DELETE CASCADE,
-    INDEX idx_student (student_id),
+    INDEX idx_student (roll_no),
     INDEX idx_section (section_id),
     INDEX idx_status (enrollment_status)
 );

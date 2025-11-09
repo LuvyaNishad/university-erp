@@ -4,7 +4,7 @@ import java.time.LocalDateTime;
 
 public class Enrollment {
     private int enrollmentId;
-    private int studentId;
+    private int roll_no;
     private int sectionId;
     private String enrollmentStatus; // ENROLLED, DROPPED, COMPLETED
     private LocalDateTime enrollmentDate;
@@ -20,10 +20,10 @@ public class Enrollment {
     // Constructors
     public Enrollment() {}
 
-    public Enrollment(int enrollmentId, int studentId, int sectionId, String enrollmentStatus, 
+    public Enrollment(int enrollmentId, int roll_no, int sectionId, String enrollmentStatus, 
                       LocalDateTime enrollmentDate, LocalDateTime dropDate) {
         this.enrollmentId = enrollmentId;
-        this.studentId = studentId;
+        this.roll_no = roll_no;
         this.sectionId = sectionId;
         this.enrollmentStatus = enrollmentStatus;
         this.enrollmentDate = enrollmentDate;
@@ -34,8 +34,8 @@ public class Enrollment {
     public int getEnrollmentId() { return enrollmentId; }
     public void setEnrollmentId(int enrollmentId) { this.enrollmentId = enrollmentId; }
 
-    public int getStudentId() { return studentId; }
-    public void setStudentId(int studentId) { this.studentId = studentId; }
+    public int getroll_no() { return roll_no; }
+    public void setroll_no(int roll_no) { this.roll_no = roll_no; }
 
     public int getSectionId() { return sectionId; }
     public void setSectionId(int sectionId) { this.sectionId = sectionId; }
