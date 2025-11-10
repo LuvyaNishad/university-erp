@@ -6,14 +6,15 @@ public class User {
     private int userId;
     private String username;
     private String passwordHash;
-    private String role; // STUDENT, INSTRUCTOR, ADMIN
+    private String role; // This should match database ENUM: 'STUDENT', 'INSTRUCTOR', 'ADMIN'
     private LocalDateTime lastLogin;
     private boolean isActive;
 
     // Constructors
     public User() {}
 
-    public User(int userId, String username, String passwordHash, String role, LocalDateTime lastLogin, boolean isActive) {
+    public User(int userId, String username, String passwordHash, String role,
+                LocalDateTime lastLogin, boolean isActive) {
         this.userId = userId;
         this.username = username;
         this.passwordHash = passwordHash;
@@ -47,6 +48,7 @@ public class User {
                 "userId=" + userId +
                 ", username='" + username + '\'' +
                 ", role='" + role + '\'' +
+                ", isActive=" + isActive +
                 '}';
     }
 }

@@ -1,5 +1,7 @@
 package edu.univ.erp.ui;
 
+import edu.univ.erp.service.AuthService;
+import edu.univ.erp.domain.User;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
@@ -97,35 +99,38 @@ public class LoginWindow extends JFrame {
             return;
         }
 
-        // Simple login check - will be replaced with AuthService later
-        if (username.equals("admin") && password.equals("password")) {
-            openDashboard("admin");
-        }
-        else if (username.equals("student") && password.equals("password")) {
-            openDashboard("student");
-        }
-        else if (username.equals("instructor") && password.equals("password")) {
-            openDashboard("instructor");
-        }
-        else {
-            showError("Login failed! Try:\nadmin/password\nstudent/password\ninstructor/password");
+        // Use AuthService with real database
+        User user = AuthService.login(username, password);
+
+        if (user != null) {
+            showSuccess("Welcome, " + user.getUsername() + "!");
+            openDashboard(user);
+        } else {
+            showError("Login failed! Try:\nadmin/admin123\nstudent1/student123\ninstructor1/instructor123");
         }
     }
 
-    private void openDashboard(String role) {
+    private void openDashboard(User user) {
         this.setVisible(false); // Hide login window
 
-        switch (role) {
-            case "admin":
-                new AdminDashboard().setVisible(true);
+        switch (user.getRole()) {
+            case "ADMIN":
+                new AdminDashboard(user).setVisible(true);
                 break;
-            case "student":
-                new StudentDashboard().setVisible(true);
+            case "STUDENT":
+                new StudentDashboard(user).setVisible(true);
                 break;
-            case "instructor":
-                new InstructorDashboard().setVisible(true);
+            case "INSTRUCTOR":
+                new InstructorDashboard(user).setVisible(true);
+                break;
+            default:
+                showError("Unknown user role: " + user.getRole());
                 break;
         }
+    }
+
+    private void showSuccess(String message) {
+        JOptionPane.showMessageDialog(this, message, "Success", JOptionPane.INFORMATION_MESSAGE);
     }
 
     private void showError(String message) {

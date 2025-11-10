@@ -3,7 +3,7 @@ package edu.univ.erp.domain;
 public class Instructor {
     private int instructorId;
     private int userId;
-    private String Name;
+    private String name; // Changed from Name to name
     private String email;
     private String phone;
     private String department;
@@ -11,11 +11,11 @@ public class Instructor {
     // Constructors
     public Instructor() {}
 
-    public Instructor(int instructorId, int userId, String Name, 
+    public Instructor(int instructorId, int userId, String name,
                       String email, String phone, String department) {
         this.instructorId = instructorId;
         this.userId = userId;
-        this.Name = Name;
+        this.name = name;
         this.email = email;
         this.phone = phone;
         this.department = department;
@@ -28,8 +28,8 @@ public class Instructor {
     public int getUserId() { return userId; }
     public void setUserId(int userId) { this.userId = userId; }
 
-    public String getName() { return Name; }
-    public void setName(String Name) { this.Name = Name; }
+    public String getName() { return name; } // Changed from getName
+    public void setName(String name) { this.name = name; }
 
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }
@@ -40,12 +40,11 @@ public class Instructor {
     public String getDepartment() { return department; }
     public void setDepartment(String department) { this.department = department; }
 
-
     @Override
     public String toString() {
         return "Instructor{" +
                 "instructorId=" + instructorId +
-                ", name='" + Name + '\'' +
+                ", name='" + name + '\'' +
                 ", department='" + department + '\'' +
                 '}';
     }

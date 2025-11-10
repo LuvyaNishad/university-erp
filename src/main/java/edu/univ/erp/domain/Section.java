@@ -17,11 +17,11 @@ public class Section {
     private String courseCode;
     private String instructorName;
 
-    // Constructors
+    // Constructors - GOOD
     public Section() {}
 
-    public Section(int sectionId, int courseId, String sectionName, int instructorId, 
-                   String semester, int year, int maxCapacity, int currentEnrollment, 
+    public Section(int sectionId, int courseId, String sectionName, int instructorId,
+                   String semester, int year, int maxCapacity, int currentEnrollment,
                    String schedule, String room) {
         this.sectionId = sectionId;
         this.courseId = courseId;
@@ -35,7 +35,7 @@ public class Section {
         this.room = room;
     }
 
-    // Getters and Setters
+    // Getters and Setters - GOOD (no changes needed)
     public int getSectionId() { return sectionId; }
     public void setSectionId(int sectionId) { this.sectionId = sectionId; }
 
@@ -85,7 +85,7 @@ public class Section {
 
     @Override
     public String toString() {
-        return courseCode + " - Section " + sectionName + 
-               " (" + semester + " " + year + ")";
+        return courseCode + " - Section " + sectionName +
+                " (" + semester + " " + year + ")";
     }
 }

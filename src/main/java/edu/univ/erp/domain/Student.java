@@ -3,21 +3,22 @@ package edu.univ.erp.domain;
 import java.time.LocalDate;
 
 public class Student {
-    private int roll_no;
+    private int rollNo; // Changed from roll_no to rollNo (Java convention)
     private int userId;
-    private String Name;
+    private String name; // Changed from Name to name
     private String email;
     private String phone;
-    private String program;
-    private LocalDate year;
+    private String program; // Changed from program to program
+    private int year; // Changed from LocalDate to int to match database
 
     // Constructors
     public Student() {}
 
-    public Student(int roll_no, int userId, String Name,String email, String phone, String program, LocalDate year) {
-        this.roll_no = roll_no;
+    public Student(int rollNo, int userId, String name, String email,
+                   String phone, String program, int year) {
+        this.rollNo = rollNo;
         this.userId = userId;
-        this.Name = Name;
+        this.name = name;
         this.email = email;
         this.phone = phone;
         this.program = program;
@@ -25,14 +26,14 @@ public class Student {
     }
 
     // Getters and Setters
-    public int getroll_no() { return roll_no; }
-    public void setroll_no(int roll_no) { this.roll_no = roll_no; }
+    public int getRollNo() { return rollNo; } // Changed from getroll_no
+    public void setRollNo(int rollNo) { this.rollNo = rollNo; }
 
     public int getUserId() { return userId; }
     public void setUserId(int userId) { this.userId = userId; }
 
-    public String getName() { return Name; }
-    public void setName(String Name) { this.Name = Name; }
+    public String getName() { return name; } // Changed from getName
+    public void setName(String name) { this.name = name; }
 
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }
@@ -40,19 +41,20 @@ public class Student {
     public String getPhone() { return phone; }
     public void setPhone(String phone) { this.phone = phone; }
 
-    public String getprogram() { return program; }
-    public void setprogram(String program) { this.program = program; }
+    public String getProgram() { return program; } // Changed from getprogram
+    public void setProgram(String program) { this.program = program; }
 
-    public LocalDate getyear() { return year; }
-    public void setyear(LocalDate year) { this.year = year; }
+    public int getYear() { return year; } // Changed from getyear and return type
+    public void setYear(int year) { this.year = year; }
 
     @Override
     public String toString() {
         return "Student{" +
-                "roll_no=" + roll_no +
-                ", userId=" + userId +
-                ", name='" + Name + '\'' +
+                "rollNo=" + rollNo +
+                ", name='" + name + '\'' +
                 ", email='" + email + '\'' +
+                ", program='" + program + '\'' +
+                ", year=" + year +
                 '}';
     }
 }

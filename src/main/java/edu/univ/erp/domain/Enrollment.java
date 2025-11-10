@@ -4,7 +4,7 @@ import java.time.LocalDateTime;
 
 public class Enrollment {
     private int enrollmentId;
-    private int roll_no;
+    private int rollNo; // Changed from roll_no to rollNo
     private int sectionId;
     private String enrollmentStatus; // ENROLLED, DROPPED, COMPLETED
     private LocalDateTime enrollmentDate;
@@ -13,17 +13,17 @@ public class Enrollment {
     // For display purposes
     private String courseCode;
     private String courseName;
-    private String sectionNumber;
+    private String sectionName; // Changed from sectionNumber to sectionName
     private String semester;
     private int year;
 
     // Constructors
     public Enrollment() {}
 
-    public Enrollment(int enrollmentId, int roll_no, int sectionId, String enrollmentStatus, 
+    public Enrollment(int enrollmentId, int rollNo, int sectionId, String enrollmentStatus,
                       LocalDateTime enrollmentDate, LocalDateTime dropDate) {
         this.enrollmentId = enrollmentId;
-        this.roll_no = roll_no;
+        this.rollNo = rollNo;
         this.sectionId = sectionId;
         this.enrollmentStatus = enrollmentStatus;
         this.enrollmentDate = enrollmentDate;
@@ -34,8 +34,8 @@ public class Enrollment {
     public int getEnrollmentId() { return enrollmentId; }
     public void setEnrollmentId(int enrollmentId) { this.enrollmentId = enrollmentId; }
 
-    public int getroll_no() { return roll_no; }
-    public void setroll_no(int roll_no) { this.roll_no = roll_no; }
+    public int getRollNo() { return rollNo; } // Changed from getroll_no
+    public void setRollNo(int rollNo) { this.rollNo = rollNo; }
 
     public int getSectionId() { return sectionId; }
     public void setSectionId(int sectionId) { this.sectionId = sectionId; }
@@ -55,8 +55,8 @@ public class Enrollment {
     public String getCourseName() { return courseName; }
     public void setCourseName(String courseName) { this.courseName = courseName; }
 
-    public String getSectionNumber() { return sectionNumber; }
-    public void setSectionNumber(String sectionNumber) { this.sectionNumber = sectionNumber; }
+    public String getSectionName() { return sectionName; } // Changed from getSectionNumber
+    public void setSectionName(String sectionName) { this.sectionName = sectionName; }
 
     public String getSemester() { return semester; }
     public void setSemester(String semester) { this.semester = semester; }
@@ -66,6 +66,6 @@ public class Enrollment {
 
     @Override
     public String toString() {
-        return courseCode + " - Section " + sectionNumber + " [" + enrollmentStatus + "]";
+        return courseCode + " - Section " + sectionName + " [" + enrollmentStatus + "]";
     }
 }

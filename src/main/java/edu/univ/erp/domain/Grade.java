@@ -16,10 +16,10 @@ public class Grade {
     private String studentName;
     private String courseCode;
 
-    // Constructors
+    // Constructors - GOOD
     public Grade() {}
 
-    public Grade(int gradeId, int enrollmentId, Double midtermScore, Double finalScore, 
+    public Grade(int gradeId, int enrollmentId, Double midtermScore, Double finalScore,
                  Double assignmentScore, String finalGrade, LocalDateTime gradeDate) {
         this.gradeId = gradeId;
         this.enrollmentId = enrollmentId;
@@ -30,7 +30,7 @@ public class Grade {
         this.gradeDate = gradeDate;
     }
 
-    // Getters and Setters
+    // Getters and Setters - GOOD
     public int getGradeId() { return gradeId; }
     public void setGradeId(int gradeId) { this.gradeId = gradeId; }
 

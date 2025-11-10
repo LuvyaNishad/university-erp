@@ -1,5 +1,6 @@
 package edu.univ.erp.ui;
 
+import edu.univ.erp.domain.User;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
@@ -7,8 +8,11 @@ import java.awt.event.ActionListener;
 
 public class StudentDashboard extends JFrame {
     private JButton logoutButton;
+    private User currentUser;
+    private JLabel welcomeLabel;
 
-    public StudentDashboard() {
+    public StudentDashboard(User user) {
+        this.currentUser = user;
         setupWindow();
         createComponents();
         setupActions();
@@ -22,21 +26,49 @@ public class StudentDashboard extends JFrame {
     }
 
     private void createComponents() {
-        // Main panel
+        // Main panel with BorderLayout
         JPanel mainPanel = new JPanel(new BorderLayout());
 
-        // Header with logout button
-        JPanel headerPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        // Header panel
+        JPanel headerPanel = new JPanel(new BorderLayout());
+        headerPanel.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
+        headerPanel.setBackground(new Color(240, 240, 240));
+
+        welcomeLabel = new JLabel("Welcome, " + currentUser.getUsername() + " (Student)");
+        welcomeLabel.setFont(new Font("Arial", Font.BOLD, 16));
+
         logoutButton = new JButton("Logout");
-        headerPanel.add(logoutButton);
+
+        headerPanel.add(welcomeLabel, BorderLayout.WEST);
+        headerPanel.add(logoutButton, BorderLayout.EAST);
+
+        // Menu panel
+        JPanel menuPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        menuPanel.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
+
+        JButton coursesBtn = new JButton("View Courses");
+        JButton timetableBtn = new JButton("My Timetable");
+        JButton gradesBtn = new JButton("My Grades");
+        JButton transcriptBtn = new JButton("Download Transcript");
+
+        menuPanel.add(coursesBtn);
+        menuPanel.add(timetableBtn);
+        menuPanel.add(gradesBtn);
+        menuPanel.add(transcriptBtn);
 
         // Content area
-        JLabel contentLabel = new JLabel("STUDENT DASHBOARD - Coming Soon!", JLabel.CENTER);
-        contentLabel.setFont(new Font("Arial", Font.BOLD, 20));
+        JPanel contentPanel = new JPanel(new BorderLayout());
+        JLabel contentLabel = new JLabel("STUDENT DASHBOARD - Select an option from the menu", JLabel.CENTER);
+        contentLabel.setFont(new Font("Arial", Font.PLAIN, 18));
         contentLabel.setForeground(Color.GRAY);
+        contentLabel.setBorder(BorderFactory.createEmptyBorder(50, 20, 50, 20));
 
+        contentPanel.add(contentLabel, BorderLayout.CENTER);
+
+        // Add all panels to main panel
         mainPanel.add(headerPanel, BorderLayout.NORTH);
-        mainPanel.add(contentLabel, BorderLayout.CENTER);
+        mainPanel.add(menuPanel, BorderLayout.CENTER);
+        mainPanel.add(contentPanel, BorderLayout.SOUTH);
 
         add(mainPanel);
     }
