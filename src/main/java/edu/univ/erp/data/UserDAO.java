@@ -2,7 +2,6 @@ package edu.univ.erp.data;
 
 import edu.univ.erp.domain.User;
 import java.sql.*;
-import java.time.LocalDateTime;
 
 public class UserDAO {
     public static User findByUsername(String username) {

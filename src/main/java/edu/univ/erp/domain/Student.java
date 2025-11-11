@@ -1,6 +1,5 @@
 package edu.univ.erp.domain;
 
-import java.time.LocalDate;
 
 public class Student {
     private int rollNo; // Changed from roll_no to rollNo (Java convention)
