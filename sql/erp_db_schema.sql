@@ -1,98 +1,85 @@
--- ERP Database Schema
-CREATE DATABASE IF NOT EXISTS erp_db;
-USE erp_db;
+-- ERP DB (PDF Page 4 - exact table structure)
+CREATE DATABASE IF NOT EXISTS university_erp;
+USE university_erp;
 
--- Students Table
+-- Students (PDF: students(user_id, roll_no, program, year))
 CREATE TABLE students (
-    roll_no INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT UNIQUE NOT NULL,
-    Name VARCHAR(50) NOT NULL,
-    email VARCHAR(100) UNIQUE NOT NULL,
-    phone VARCHAR(15),
-    program VARCHAR(50),
-    year INT NOT NULL,
-    INDEX idx_user_id (user_id)
+    user_id VARCHAR(50) PRIMARY KEY,
+    roll_no VARCHAR(20) UNIQUE NOT NULL,
+    program VARCHAR(100),
+    year INT
 );
 
--- Instructors Table
+-- Instructors (PDF: instructors(user_id, department, ...))
 CREATE TABLE instructors (
-    instructor_id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT UNIQUE NOT NULL,
-    Name VARCHAR(50) NOT NULL,
-    email VARCHAR(100) UNIQUE NOT NULL,
-    phone VARCHAR(15),
-    department VARCHAR(100),
-    INDEX idx_user_id (user_id)
+    user_id VARCHAR(50) PRIMARY KEY,
+    department VARCHAR(100)
 );
 
--- Courses Table
+-- Courses (PDF: courses(code, title, credits))
 CREATE TABLE courses (
-    course_id INT AUTO_INCREMENT PRIMARY KEY,
-    course_code VARCHAR(20) UNIQUE NOT NULL,
-    course_name VARCHAR(100) NOT NULL,
-    credits INT NOT NULL CHECK (credits > 0),
-    description TEXT,
-    INDEX idx_course_code (course_code)
+    course_id VARCHAR(50) PRIMARY KEY,
+    code VARCHAR(20) UNIQUE NOT NULL,
+    title VARCHAR(200) NOT NULL,
+    credits INT NOT NULL
 );
 
--- Sections Table
+-- Sections (PDF: sections(course_id, instructor_id, day_time, room, capacity, semester, year))
 CREATE TABLE sections (
-    section_id INT AUTO_INCREMENT PRIMARY KEY,
-    course_id INT NOT NULL,
-    section_name VARCHAR(10) NOT NULL,
-    instructor_id INT,
-    semester VARCHAR(20) NOT NULL,
-    year INT NOT NULL,
-    max_capacity INT NOT NULL CHECK (max_capacity > 0),
-    current_enrollment INT DEFAULT 0,
-    schedule VARCHAR(100),
+    section_id VARCHAR(50) PRIMARY KEY,
+    course_id VARCHAR(50),
+    instructor_id VARCHAR(50),
+    day_time VARCHAR(100),
     room VARCHAR(50),
-    UNIQUE KEY unique_section (course_id, section_name, semester, year),
-    FOREIGN KEY (course_id) REFERENCES courses(course_id) ON DELETE CASCADE,
-    FOREIGN KEY (instructor_id) REFERENCES instructors(instructor_id) ON DELETE SET NULL,
-    INDEX idx_instructor (instructor_id),
-    INDEX idx_semester (semester, year)
+    capacity INT,
+    semester VARCHAR(50),
+    year INT,
+    FOREIGN KEY (course_id) REFERENCES courses(course_id),
+    FOREIGN KEY (instructor_id) REFERENCES instructors(user_id)
 );
 
--- Enrollments Table
+-- Enrollments (PDF: enrollments(student_id, section_id, status))
 CREATE TABLE enrollments (
-    enrollment_id INT AUTO_INCREMENT PRIMARY KEY,
-    roll_no INT NOT NULL,
-    section_id INT NOT NULL,
-    enrollment_status ENUM('ENROLLED', 'DROPPED', 'COMPLETED') DEFAULT 'ENROLLED',
-    enrollment_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    drop_date TIMESTAMP NULL,
-    UNIQUE KEY unique_enrollment (roll_no, section_id),
-    FOREIGN KEY (roll_no) REFERENCES students(roll_no) ON DELETE CASCADE,
-    FOREIGN KEY (section_id) REFERENCES sections(section_id) ON DELETE CASCADE,
-    INDEX idx_student (roll_no),
-    INDEX idx_section (section_id),
-    INDEX idx_status (enrollment_status)
+    enrollment_id VARCHAR(50) PRIMARY KEY,
+    student_id VARCHAR(50),
+    section_id VARCHAR(50),
+    status ENUM('registered', 'dropped') DEFAULT 'registered',
+    UNIQUE KEY unique_enrollment (student_id, section_id),
+    FOREIGN KEY (student_id) REFERENCES students(user_id),
+    FOREIGN KEY (section_id) REFERENCES sections(section_id)
 );
 
--- Grades Table
+-- Grades (PDF: grades(enrollment_id, component, score, final_grade))
 CREATE TABLE grades (
-    grade_id INT AUTO_INCREMENT PRIMARY KEY,
-    enrollment_id INT UNIQUE NOT NULL,
-    midterm_score DECIMAL(5,2) CHECK (midterm_score >= 0 AND midterm_score <= 100),
-    final_score DECIMAL(5,2) CHECK (final_score >= 0 AND final_score <= 100),
-    assignment_score DECIMAL(5,2) CHECK (assignment_score >= 0 AND assignment_score <= 100),
+    grade_id VARCHAR(50) PRIMARY KEY,
+    enrollment_id VARCHAR(50),
+    component VARCHAR(100),
+    score DECIMAL(5,2),
     final_grade VARCHAR(2),
-    grade_date TIMESTAMP,
-    FOREIGN KEY (enrollment_id) REFERENCES enrollments(enrollment_id) ON DELETE CASCADE,
-    INDEX idx_enrollment (enrollment_id)
+    FOREIGN KEY (enrollment_id) REFERENCES enrollments(enrollment_id)
 );
 
--- Settings Table (for maintenance mode, etc.)
+-- Settings (PDF: settings(key, value))
 CREATE TABLE settings (
-    setting_id INT AUTO_INCREMENT PRIMARY KEY,
-    setting_key VARCHAR(50) UNIQUE NOT NULL,
-    setting_value VARCHAR(255) NOT NULL,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    updated_by INT,
-    INDEX idx_key (setting_key)
+    setting_key VARCHAR(100) PRIMARY KEY,
+    setting_value VARCHAR(500)
 );
 
--- Insert default maintenance mode setting
-INSERT INTO settings (setting_key, setting_value) VALUES 
-('maintenance_mode', 'false');
+-- Insert default settings
+INSERT INTO settings (setting_key, setting_value) VALUES ('maintenance_on', 'false');
+
+-- Sample ERP data (PDF Page 8)
+INSERT INTO students (user_id, roll_no, program, year) VALUES
+('stu1', '2023001', 'Computer Science', 2023),
+('stu2', '2023002', 'Computer Science', 2023);
+
+INSERT INTO instructors (user_id, department) VALUES
+('inst1', 'Computer Science');
+
+INSERT INTO courses (course_id, code, title, credits) VALUES
+('CS101', 'CS101', 'Introduction to Programming', 4),
+('CS201', 'CS201', 'Data Structures', 4);
+
+INSERT INTO sections (section_id, course_id, instructor_id, day_time, room, capacity, semester, year) VALUES
+('SEC001', 'CS101', 'inst1', 'Mon Wed 10:00-11:30', 'Room 101', 30, 'Fall', 2024),
+('SEC002', 'CS201', 'inst1', 'Tue Thu 14:00-15:30', 'Room 102', 25, 'Fall', 2024);

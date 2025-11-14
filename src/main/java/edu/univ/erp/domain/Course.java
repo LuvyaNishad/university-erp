@@ -1,41 +1,34 @@
 package edu.univ.erp.domain;
 
 public class Course {
-    private int courseId;
-    private String courseCode;
-    private String courseName;
+    private String courseId;
+    private String code;
+    private String title;
     private int credits;
-    private String description;
 
-    // Constructors - GOOD
     public Course() {}
 
-    public Course(int courseId, String courseCode, String courseName, int credits, String description) {
+    public Course(String courseId, String code, String title, int credits) {
         this.courseId = courseId;
-        this.courseCode = courseCode;
-        this.courseName = courseName;
+        this.code = code;
+        this.title = title;
         this.credits = credits;
-        this.description = description;
     }
 
-    // Getters and Setters - GOOD
-    public int getCourseId() { return courseId; }
-    public void setCourseId(int courseId) { this.courseId = courseId; }
+    public String getCourseId() { return courseId; }
+    public void setCourseId(String courseId) { this.courseId = courseId; }
 
-    public String getCourseCode() { return courseCode; }
-    public void setCourseCode(String courseCode) { this.courseCode = courseCode; }
+    public String getCode() { return code; }
+    public void setCode(String code) { this.code = code; }
 
-    public String getCourseName() { return courseName; }
-    public void setCourseName(String courseName) { this.courseName = courseName; }
+    public String getTitle() { return title; }
+    public void setTitle(String title) { this.title = title; }
 
     public int getCredits() { return credits; }
     public void setCredits(int credits) { this.credits = credits; }
 
-    public String getDescription() { return description; }
-    public void setDescription(String description) { this.description = description; }
-
     @Override
     public String toString() {
-        return courseCode + " - " + courseName + " (" + credits + " credits)";
+        return code + " - " + title + " (" + credits + " credits)";
     }
 }

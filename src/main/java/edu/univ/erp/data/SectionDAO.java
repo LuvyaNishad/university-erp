@@ -7,100 +7,85 @@ import java.util.List;
 
 public class SectionDAO {
 
-    public static int insertSection(Section section) throws SQLException {
-        String sql = "INSERT INTO sections (courseid, sectionname, instructorid, semester, year, maxcapacity, currentenrollment, schedule, room) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
-        try (Connection conn = DatabaseConnection.getErpConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
-            stmt.setInt(1, section.getCourseId());
-            stmt.setString(2, section.getSectionName());
-            stmt.setInt(3, section.getInstructorId());
-            stmt.setString(4, section.getSemester());
-            stmt.setInt(5, section.getYear());
-            stmt.setInt(6, section.getMaxCapacity());
-            stmt.setInt(7, section.getCurrentEnrollment());
-            stmt.setString(8, section.getSchedule());
-            stmt.setString(9, section.getRoom());
-            int rows = stmt.executeUpdate();
-            if (rows == 0) throw new SQLException("Insert section failed.");
-            try (ResultSet keys = stmt.getGeneratedKeys()) {
-                if (keys.next()) return keys.getInt(1);
-                else throw new SQLException("No ID generated.");
-            }
-        }
-    }
-
-    public static Section findById(int id) throws SQLException {
-        String sql = "SELECT * FROM sections WHERE sectionid = ?";
-        try (Connection conn = DatabaseConnection.getErpConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setInt(1, id);
-            ResultSet rs = stmt.executeQuery();
-            if (rs.next()) {
-                Section s = new Section();
-                s.setSectionId(rs.getInt("sectionid"));
-                s.setCourseId(rs.getInt("courseid"));
-                s.setSectionName(rs.getString("sectionname"));
-                s.setInstructorId(rs.getInt("instructorid"));
-                s.setSemester(rs.getString("semester"));
-                s.setYear(rs.getInt("year"));
-                s.setMaxCapacity(rs.getInt("maxcapacity"));
-                s.setCurrentEnrollment(rs.getInt("currentenrollment"));
-                s.setSchedule(rs.getString("schedule"));
-                s.setRoom(rs.getString("room"));
-                return s;
-            }
-        }
-        return null;
-    }
-
-    public static void updateSection(Section section) throws SQLException {
-        String sql = "UPDATE sections SET courseid=?, sectionname=?, instructorid=?, semester=?, year=?, maxcapacity=?, currentenrollment=?, schedule=?, room=? WHERE sectionid=?";
-        try (Connection conn = DatabaseConnection.getErpConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setInt(1, section.getCourseId());
-            stmt.setString(2, section.getSectionName());
-            stmt.setInt(3, section.getInstructorId());
-            stmt.setString(4, section.getSemester());
-            stmt.setInt(5, section.getYear());
-            stmt.setInt(6, section.getMaxCapacity());
-            stmt.setInt(7, section.getCurrentEnrollment());
-            stmt.setString(8, section.getSchedule());
-            stmt.setString(9, section.getRoom());
-            stmt.setInt(10, section.getSectionId());
-            stmt.executeUpdate();
-        }
-    }
-
-    public static void deleteSection(int id) throws SQLException {
-        String sql = "DELETE FROM sections WHERE sectionid = ?";
-        try (Connection conn = DatabaseConnection.getErpConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setInt(1, id);
-            stmt.executeUpdate();
-        }
-    }
-
-    public static List<Section> listAll() throws SQLException {
-        List<Section> list = new ArrayList<>();
-        String sql = "SELECT * FROM sections";
+    public static List<Section> getAllSections() throws SQLException {
+        List<Section> sections = new ArrayList<>();
+        String sql = "SELECT s.section_id, s.course_id, s.instructor_id, s.day_time, s.room, " +
+                "s.capacity, s.semester, s.year, c.title as course_title " +
+                "FROM sections s JOIN courses c ON s.course_id = c.course_id";
         try (Connection conn = DatabaseConnection.getErpConnection();
              PreparedStatement stmt = conn.prepareStatement(sql);
              ResultSet rs = stmt.executeQuery()) {
             while (rs.next()) {
-                Section s = new Section();
-                s.setSectionId(rs.getInt("sectionid"));
-                s.setCourseId(rs.getInt("courseid"));
-                s.setSectionName(rs.getString("sectionname"));
-                s.setInstructorId(rs.getInt("instructorid"));
-                s.setSemester(rs.getString("semester"));
-                s.setYear(rs.getInt("year"));
-                s.setMaxCapacity(rs.getInt("maxcapacity"));
-                s.setCurrentEnrollment(rs.getInt("currentenrollment"));
-                s.setSchedule(rs.getString("schedule"));
-                s.setRoom(rs.getString("room"));
-                list.add(s);
+                Section section = new Section();
+                section.setSectionId(rs.getString("section_id"));
+                section.setCourseId(rs.getString("course_id"));
+                section.setInstructorId(rs.getString("instructor_id"));
+                section.setDayTime(rs.getString("day_time"));
+                section.setRoom(rs.getString("room"));
+                section.setCapacity(rs.getInt("capacity"));
+                section.setSemester(rs.getString("semester"));
+                section.setYear(rs.getInt("year"));
+                section.setCourseTitle(rs.getString("course_title"));
+                sections.add(section);
             }
         }
-        return list;
+        return sections;
+    }
+
+    public static List<Section> getSectionsByInstructor(String instructorId) throws SQLException {
+        List<Section> sections = new ArrayList<>();
+        String sql = "SELECT s.section_id, s.course_id, s.instructor_id, s.day_time, s.room, " +
+                "s.capacity, s.semester, s.year, c.title as course_title " +
+                "FROM sections s JOIN courses c ON s.course_id = c.course_id " +
+                "WHERE s.instructor_id = ?";
+        try (Connection conn = DatabaseConnection.getErpConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, instructorId);
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                Section section = new Section();
+                section.setSectionId(rs.getString("section_id"));
+                section.setCourseId(rs.getString("course_id"));
+                section.setInstructorId(rs.getString("instructor_id"));
+                section.setDayTime(rs.getString("day_time"));
+                section.setRoom(rs.getString("room"));
+                section.setCapacity(rs.getInt("capacity"));
+                section.setSemester(rs.getString("semester"));
+                section.setYear(rs.getInt("year"));
+                section.setCourseTitle(rs.getString("course_title"));
+                sections.add(section);
+            }
+        }
+        return sections;
+    }
+
+    public static boolean createSection(Section section) throws SQLException {
+        String sql = "INSERT INTO sections (section_id, course_id, instructor_id, day_time, room, capacity, semester, year) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+        try (Connection conn = DatabaseConnection.getErpConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, section.getSectionId());
+            stmt.setString(2, section.getCourseId());
+            stmt.setString(3, section.getInstructorId());
+            stmt.setString(4, section.getDayTime());
+            stmt.setString(5, section.getRoom());
+            stmt.setInt(6, section.getCapacity());
+            stmt.setString(7, section.getSemester());
+            stmt.setInt(8, section.getYear());
+            return stmt.executeUpdate() > 0;
+        }
+    }
+
+    public static int getCurrentEnrollment(String sectionId) throws SQLException {
+        String sql = "SELECT COUNT(*) as count FROM enrollments WHERE section_id = ? AND status = 'registered'";
+        try (Connection conn = DatabaseConnection.getErpConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, sectionId);
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                return rs.getInt("count");
+            }
+        }
+        return 0;
     }
 }

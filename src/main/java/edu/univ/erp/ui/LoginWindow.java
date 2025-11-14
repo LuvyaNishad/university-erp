@@ -1,11 +1,11 @@
 package edu.univ.erp.ui;
 
 import edu.univ.erp.service.AuthService;
-import edu.univ.erp.domain.User;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.sql.SQLException;
 
 public class LoginWindow extends JFrame {
     private JTextField usernameField;
@@ -88,6 +88,14 @@ public class LoginWindow extends JFrame {
                 handleLogin();
             }
         });
+
+        // Enter key support
+        passwordField.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                handleLogin();
+            }
+        });
     }
 
     private void handleLogin() {
@@ -99,32 +107,35 @@ public class LoginWindow extends JFrame {
             return;
         }
 
-        // Use AuthService with real database
-        User user = AuthService.login(username, password);
+        // Use the fixed AuthService
+        boolean loginSuccess = AuthService.login(username, password);
 
-        if (user != null) {
-            showSuccess("Welcome, " + user.getUsername() + "!");
-            openDashboard(user);
+        if (loginSuccess) {
+            showSuccess("Welcome, " + username + "!");
+            openDashboard();
         } else {
-            showError("Login failed! Try:\nadmin/admin123\nstudent1/student123\ninstructor1/instructor123");
+            showError("Login failed! Try: admin1/admin123");
         }
     }
 
-    private void openDashboard(User user) {
+    private void openDashboard() {
         this.setVisible(false); // Hide login window
 
-        switch (user.getRole()) {
-            case "ADMIN":
-                new AdminDashboard(user).setVisible(true);
+        String role = AuthService.getCurrentUserRole();
+
+        switch (role) {
+            case "admin":
+                new AdminDashboard().setVisible(true);
                 break;
-            case "STUDENT":
-                new StudentDashboard(user).setVisible(true);
+            case "student":
+                new StudentDashboard().setVisible(true);
                 break;
-            case "INSTRUCTOR":
-                new InstructorDashboard(user).setVisible(true);
+            case "instructor":
+                new InstructorDashboard().setVisible(true);
                 break;
             default:
-                showError("Unknown user role: " + user.getRole());
+                showError("Unknown user role: " + role);
+                this.setVisible(true); // Show login again
                 break;
         }
     }

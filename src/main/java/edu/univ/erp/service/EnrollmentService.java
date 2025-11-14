@@ -1,29 +1,21 @@
 package edu.univ.erp.service;
 
-import edu.univ.erp.domain.Enrollment;
 import edu.univ.erp.data.EnrollmentDAO;
+import edu.univ.erp.domain.Enrollment;
 import java.sql.SQLException;
 import java.util.List;
 
 public class EnrollmentService {
 
-    public int addEnrollment(Enrollment enrollment) throws SQLException {
-        return EnrollmentDAO.insertEnrollment(enrollment);
+    public List<Enrollment> getEnrollmentsByStudent(String studentId) throws SQLException {
+        return EnrollmentDAO.getEnrollmentsByStudent(studentId);
     }
 
-    public Enrollment getEnrollment(int enrollmentId) throws SQLException {
-        return EnrollmentDAO.findById(enrollmentId);
+    public boolean enrollStudent(String studentId, String sectionId) throws SQLException {
+        return EnrollmentDAO.enrollStudent(studentId, sectionId);
     }
 
-    public void updateEnrollment(Enrollment enrollment) throws SQLException {
-        EnrollmentDAO.updateEnrollment(enrollment);
-    }
-
-    public void deleteEnrollment(int enrollmentId) throws SQLException {
-        EnrollmentDAO.deleteEnrollment(enrollmentId);
-    }
-
-    public List<Enrollment> getAllEnrollments() throws SQLException {
-        return EnrollmentDAO.listAll();
+    public boolean dropEnrollment(String enrollmentId) throws SQLException {
+        return EnrollmentDAO.dropEnrollment(enrollmentId);
     }
 }
