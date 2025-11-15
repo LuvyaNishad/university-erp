@@ -7,11 +7,6 @@ import javax.swing.*;
 import java.awt.*;
 import java.sql.SQLException;
 
-/**
- * Admin Dashboard - The main hub for administrators.
- * This file has been updated to use UITheme and to open the functional
- * dialogs for each management task.
- */
 public class AdminDashboard extends JFrame {
     private JButton logoutButton;
     private JButton maintenanceButton;
@@ -26,143 +21,156 @@ public class AdminDashboard extends JFrame {
         setupWindow();
         createComponents();
         setupActions();
-        updateMaintenanceButton(); // Set initial state
+        updateMaintenanceState(); // Renamed from checkMaintenanceMode
     }
 
     private void setupWindow() {
         setTitle("Admin Dashboard - University ERP");
-        setSize(1000, 700);
+        setSize(1000, 700); // Standard size
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
+        getContentPane().setLayout(new BorderLayout());
         getContentPane().setBackground(UITheme.COLOR_BACKGROUND);
     }
 
     private void createComponents() {
-        // Main panel
-        JPanel mainPanel = new JPanel(new BorderLayout());
-        mainPanel.setBackground(UITheme.COLOR_BACKGROUND);
+        // --- 1. NORTH: Header Panel ---
+        JPanel headerPanel = new JPanel(new BorderLayout(20, 0));
+        headerPanel.setBackground(UITheme.COLOR_WHITE);
+        headerPanel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(220, 220, 220)),
+                BorderFactory.createEmptyBorder(10, 20, 10, 20)
+        ));
 
-        // --- Top Panel (Header + Banner) ---
-        JPanel topPanel = new JPanel(new BorderLayout());
+        JLabel titleLabel = new JLabel("Administrator Dashboard");
+        UITheme.styleSubHeaderLabel(titleLabel);
+        headerPanel.add(titleLabel, BorderLayout.WEST);
 
-        // Header panel
-        JPanel headerPanel = new JPanel(new BorderLayout());
-        headerPanel.setBorder(UITheme.BORDER_PADDING);
-        headerPanel.setBackground(UITheme.COLOR_HEADER_BACKGROUND);
-
-        JLabel userLabel = new JLabel("Welcome, Administrator (" + AuthService.getCurrentUserId() + ")");
-        UITheme.styleHeaderLabel(userLabel);
-
+        // User Panel (Icon + Name + Logout)
+        JPanel userPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        userPanel.setOpaque(false); // Transparent background
+        JLabel userIcon = new JLabel("👤");
+        userIcon.setFont(UITheme.FONT_SUB_HEADER);
+        JLabel userLabel = new JLabel(AuthService.getCurrentUsername() + " (Admin)");
+        UITheme.styleLabel(userLabel);
         logoutButton = new JButton("Logout");
         UITheme.styleSecondaryButton(logoutButton);
-        logoutButton.setPreferredSize(new Dimension(100, 40));
+        logoutButton.setPreferredSize(new Dimension(100, 35));
 
-        headerPanel.add(userLabel, BorderLayout.CENTER);
-        headerPanel.add(logoutButton, BorderLayout.EAST);
+        userPanel.add(userIcon);
+        userPanel.add(userLabel);
+        userPanel.add(logoutButton);
+        headerPanel.add(userPanel, BorderLayout.EAST);
 
-        // Maintenance banner (styled in updateMaintenanceButton)
+        // Maintenance Banner (sits above the header)
         maintenanceBanner = new JLabel("...", JLabel.CENTER);
 
+        JPanel topPanel = new JPanel(new BorderLayout());
         topPanel.add(maintenanceBanner, BorderLayout.NORTH);
         topPanel.add(headerPanel, BorderLayout.CENTER);
-        mainPanel.add(topPanel, BorderLayout.NORTH);
+        add(topPanel, BorderLayout.NORTH);
 
-        // --- Center: Menu Grid Panel ---
-        JPanel menuPanel = new JPanel(new GridLayout(2, 2, 20, 20)); // Gaps
-        menuPanel.setBorder(UITheme.BORDER_PADDING);
-        menuPanel.setBackground(UITheme.COLOR_BACKGROUND);
+        // --- 2. CENTER: Menu Grid Panel ---
+        JPanel menuGridPanel = new JPanel(new GridLayout(2, 2, 25, 25));
+        menuGridPanel.setBackground(UITheme.COLOR_BACKGROUND);
+        menuGridPanel.setBorder(BorderFactory.createEmptyBorder(40, 40, 40, 40)); // Large padding
 
-        manageUsersButton = new JButton("<html><center>Manage Users<br/><small>Add students/instructors</small></center></html>");
-        manageCoursesButton = new JButton("<html><center>Manage Courses<br/><small>Create/edit courses</small></center></html>");
-        manageSectionsButton = new JButton("<html><center>Manage Sections<br/><small>Create sections & assign instructors</small></center></html>");
-        maintenanceButton = new JButton("Maintenance: ..."); // Text set in updateMaintenanceButton
+        // Sidebar buttons from PDF
+        manageUsersButton = styleDashboardButton(new JButton("Manage Users"), "👤");
+        manageCoursesButton = styleDashboardButton(new JButton("Manage Courses"), "📚");
+        manageSectionsButton = styleDashboardButton(new JButton("Manage Sections"), "📦");
+        maintenanceButton = styleDashboardButton(new JButton("Maintenance: ..."), "⚙️");
 
-        // Style buttons
-        UITheme.styleDashboardButton(manageUsersButton, UITheme.COLOR_PRIMARY_TEAL);
-        UITheme.styleDashboardButton(manageCoursesButton, UITheme.COLOR_GRAY_DARK);
-        UITheme.styleDashboardButton(manageSectionsButton, UITheme.COLOR_GRAY_MEDIUM);
+        menuGridPanel.add(manageUsersButton);
+        menuGridPanel.add(manageCoursesButton);
+        menuGridPanel.add(manageSectionsButton);
+        menuGridPanel.add(maintenanceButton);
 
-        // Maintenance button is styled dynamically
-        maintenanceButton.setFont(UITheme.FONT_BUTTON);
-        maintenanceButton.setPreferredSize(new Dimension(200, 100));
+        add(menuGridPanel, BorderLayout.CENTER);
+    }
 
-        menuPanel.add(manageUsersButton);
-        menuPanel.add(manageCoursesButton);
-        menuPanel.add(manageSectionsButton);
-        menuPanel.add(maintenanceButton);
+    /**
+     * Helper to style the new dashboard buttons
+     */
+    private JButton styleDashboardButton(JButton button, String icon) {
+        button.setText("<html><center><span style='font-size: 32px;'>" + icon + "</span><br/><br/>"
+                + button.getText() + "</center></html>");
+        button.setFont(UITheme.FONT_SUB_HEADER);
+        button.setForeground(UITheme.COLOR_GRAY_DARKEST);
+        button.setBackground(UITheme.COLOR_WHITE);
+        button.setOpaque(true);
+        button.setFocusPainted(false);
+        button.setBorder(BorderFactory.createLineBorder(new Color(220, 220, 220)));
+        button.setHorizontalAlignment(SwingConstants.CENTER);
+        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        button.setPreferredSize(new Dimension(200, 150)); // Large button size
 
-        mainPanel.add(menuPanel, BorderLayout.CENTER);
-
-        add(mainPanel);
+        // Hover effect
+        button.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                if (button.isEnabled()) {
+                    button.setBackground(UITheme.COLOR_PRIMARY_TEAL);
+                    button.setForeground(UITheme.COLOR_WHITE);
+                }
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                // Don't reset color for the maintenance button, it's special
+                if (!button.equals(maintenanceButton)) {
+                    button.setBackground(UITheme.COLOR_WHITE);
+                    button.setForeground(UITheme.COLOR_GRAY_DARKEST);
+                }
+            }
+        });
+        return button;
     }
 
     private void setupActions() {
         logoutButton.addActionListener(e -> logout());
         maintenanceButton.addActionListener(e -> toggleMaintenanceMode());
-
-        // Connect buttons to open their respective functional windows
         manageUsersButton.addActionListener(e -> openUserManagement());
         manageCoursesButton.addActionListener(e -> openCourseManagement());
         manageSectionsButton.addActionListener(e -> openSectionManagement());
     }
 
-    /**
-     * Opens the User Management dialog.
-     */
     private void openUserManagement() {
         SwingUtilities.invokeLater(() -> new UserManagementWindow(this).setVisible(true));
     }
 
-    /**
-     * Opens the Course Management dialog.
-     */
     private void openCourseManagement() {
         SwingUtilities.invokeLater(() -> new CourseManagementWindow(this).setVisible(true));
     }
 
-    /**
-     * Opens the Section Management dialog.
-     */
     private void openSectionManagement() {
         SwingUtilities.invokeLater(() -> new SectionManagementWindow(this).setVisible(true));
     }
 
-    /**
-     * Toggles the maintenance mode setting in the database.
-     */
     private void toggleMaintenanceMode() {
         try {
             boolean currentMode = adminService.isMaintenanceMode();
             adminService.setMaintenanceMode(!currentMode);
-
-            // Show success message
             String status = !currentMode ? "ON" : "OFF";
             String message = "Maintenance mode is now " + status + ".\n\n";
             message += !currentMode ?
                     "Students and Instructors now have VIEW-ONLY access." :
                     "Normal read/write access has been restored.";
             JOptionPane.showMessageDialog(this, message, "Settings Updated", JOptionPane.INFORMATION_MESSAGE);
-
         } catch (SQLException ex) {
             JOptionPane.showMessageDialog(this,
                     "Error updating maintenance mode: " + ex.getMessage(),
-                    "Error",
-                    JOptionPane.ERROR_MESSAGE);
+                    "Error", JOptionPane.ERROR_MESSAGE);
         } finally {
-            // Always update the button and banner text
-            updateMaintenanceButton();
+            updateMaintenanceState();
         }
     }
 
-    /**
-     * Reads the current maintenance state and updates the button/banner.
-     */
-    private void updateMaintenanceButton() {
+    private void updateMaintenanceState() {
         try {
             boolean maintenanceOn = adminService.isMaintenanceMode();
+            String status = maintenanceOn ? "ON" : "OFF";
 
-            // Update Button
-            maintenanceButton.setText("<html><center>Toggle Maintenance<br/><small>STATUS: " + (maintenanceOn ? "ON" : "OFF") + "</small></center></html>");
+            // Update Button Text and Style
+            maintenanceButton.setText("<html><center><span style='font-size: 32px;'>⚙️</span><br/><br/>"
+                    + "Maintenance: " + status + "</center></html>");
             if (maintenanceOn) {
                 maintenanceButton.setBackground(UITheme.COLOR_DANGER_RED);
                 maintenanceButton.setForeground(UITheme.COLOR_WHITE);
@@ -174,18 +182,13 @@ public class AdminDashboard extends JFrame {
             // Update Banner
             if (maintenanceOn) {
                 maintenanceBanner.setText("⚠️ MAINTENANCE MODE ACTIVE - Students/Instructors are view-only");
-                UITheme.styleMaintenanceBanner(maintenanceBanner); // Yellow style
+                UITheme.styleMaintenanceBanner(maintenanceBanner);
                 maintenanceBanner.setVisible(true);
             } else {
-                maintenanceBanner.setText("⚙️ ADMIN MODE - Full System Access");
-                maintenanceBanner.setBackground(new Color(220, 220, 255)); // Light blue admin
-                maintenanceBanner.setForeground(UITheme.COLOR_PRIMARY_BLUE);
-                maintenanceBanner.setFont(UITheme.FONT_LABEL);
-                maintenanceBanner.setOpaque(true);
-                maintenanceBanner.setVisible(true);
+                maintenanceBanner.setVisible(false); // Hide banner when not in maintenance
             }
         } catch (SQLException ex) {
-            maintenanceButton.setText("Maintenance: ERROR");
+            maintenanceButton.setText("<html><center><span style='font-size: 32px;'>⚙️</span><br/><br/>Maintenance: ERROR</center></html>");
             maintenanceButton.setBackground(Color.GRAY);
         }
     }

@@ -5,11 +5,6 @@ import edu.univ.erp.service.AuthService;
 import javax.swing.*;
 import java.awt.*;
 
-/**
- * Student Dashboard
- * This is the main hub for students. All buttons are now functional
- * and open their respective JDialog windows.
- */
 public class StudentDashboard extends JFrame {
 
     private JButton logoutButton;
@@ -18,7 +13,6 @@ public class StudentDashboard extends JFrame {
     private JButton gradesButton;
     private JButton transcriptButton;
     private JLabel maintenanceBanner;
-    private JLabel welcomeLabel;
 
     public StudentDashboard() {
         setupWindow();
@@ -32,66 +26,97 @@ public class StudentDashboard extends JFrame {
         setSize(1000, 700);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
+        getContentPane().setLayout(new BorderLayout());
         getContentPane().setBackground(UITheme.COLOR_BACKGROUND);
     }
 
     private void createComponents() {
-        // Main panel
-        JPanel mainPanel = new JPanel(new BorderLayout());
-        mainPanel.setBackground(UITheme.COLOR_BACKGROUND);
+        // --- 1. NORTH: Header Panel ---
+        JPanel headerPanel = new JPanel(new BorderLayout(20, 0));
+        headerPanel.setBackground(UITheme.COLOR_WHITE);
+        headerPanel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(220, 220, 220)),
+                BorderFactory.createEmptyBorder(10, 20, 10, 20)
+        ));
 
-        // --- North: Maintenance Banner ---
-        maintenanceBanner = new JLabel("⚠️ MAINTENANCE MODE - View Only Access", JLabel.CENTER);
-        UITheme.styleMaintenanceBanner(maintenanceBanner);
-        maintenanceBanner.setVisible(false); // Hide by default
-        mainPanel.add(maintenanceBanner, BorderLayout.NORTH);
+        JLabel titleLabel = new JLabel("Student Dashboard");
+        UITheme.styleSubHeaderLabel(titleLabel);
+        headerPanel.add(titleLabel, BorderLayout.WEST);
 
-        // --- Center: Header Panel ---
-        JPanel headerPanel = new JPanel(new BorderLayout());
-        headerPanel.setBorder(UITheme.BORDER_PADDING);
-        headerPanel.setBackground(UITheme.COLOR_HEADER_BACKGROUND);
-
-        welcomeLabel = new JLabel("Welcome, Student (" + AuthService.getCurrentUserId() + ")");
-        UITheme.styleHeaderLabel(welcomeLabel);
-
+        // User Panel (Icon + Name + Logout)
+        JPanel userPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        userPanel.setOpaque(false); // Transparent background
+        JLabel userIcon = new JLabel("👤");
+        userIcon.setFont(UITheme.FONT_SUB_HEADER);
+        JLabel userLabel = new JLabel(AuthService.getCurrentUsername() + " (Student)");
+        UITheme.styleLabel(userLabel);
         logoutButton = new JButton("Logout");
         UITheme.styleSecondaryButton(logoutButton);
-        logoutButton.setPreferredSize(new Dimension(100, 40));
+        logoutButton.setPreferredSize(new Dimension(100, 35));
 
-        headerPanel.add(welcomeLabel, BorderLayout.CENTER);
-        headerPanel.add(logoutButton, BorderLayout.EAST);
-        mainPanel.add(headerPanel, BorderLayout.CENTER);
+        userPanel.add(userIcon);
+        userPanel.add(userLabel);
+        userPanel.add(logoutButton);
+        headerPanel.add(userPanel, BorderLayout.EAST);
 
-        // --- South: Menu Grid Panel ---
-        JPanel menuPanel = new JPanel(new GridLayout(2, 2, 20, 20));
-        menuPanel.setBorder(UITheme.BORDER_PADDING);
-        menuPanel.setBackground(UITheme.COLOR_BACKGROUND);
+        maintenanceBanner = new JLabel("⚠️ MAINTENANCE MODE - View Only Access", JLabel.CENTER);
+        UITheme.styleMaintenanceBanner(maintenanceBanner);
+        maintenanceBanner.setVisible(false);
 
-        coursesButton = new JButton("<html><center>📚 Course Catalog<br/><small>Browse and register for courses</small></center></html>");
-        timetableButton = new JButton("<html><center>📅 My Timetable<br/><small>View class schedule</small></center></html>");
-        gradesButton = new JButton("<html><center>📊 My Grades<br/><small>View scores and final grades</small></center></html>");
-        transcriptButton = new JButton("<html><center>📄 Download Transcript<br/><small>Export CSV/PDF report</small></center></html>");
+        JPanel topPanel = new JPanel(new BorderLayout());
+        topPanel.add(maintenanceBanner, BorderLayout.NORTH);
+        topPanel.add(headerPanel, BorderLayout.CENTER);
+        add(topPanel, BorderLayout.NORTH);
 
-        // Style buttons
-        UITheme.styleDashboardButton(coursesButton, UITheme.COLOR_PRIMARY_BLUE);
-        UITheme.styleDashboardButton(timetableButton, UITheme.COLOR_PRIMARY_GREEN);
-        UITheme.styleDashboardButton(gradesButton, UITheme.COLOR_PRIMARY_YELLOW);
-        UITheme.styleDashboardButton(transcriptButton, UITheme.COLOR_PRIMARY_PURPLE);
+        // --- 2. CENTER: Menu Grid Panel ---
+        JPanel menuGridPanel = new JPanel(new GridLayout(2, 2, 25, 25));
+        menuGridPanel.setBackground(UITheme.COLOR_BACKGROUND);
+        menuGridPanel.setBorder(BorderFactory.createEmptyBorder(40, 40, 40, 40));
 
-        menuPanel.add(coursesButton);
-        menuPanel.add(timetableButton);
-        menuPanel.add(gradesButton);
-        menuPanel.add(transcriptButton);
+        // Buttons from PDF
+        coursesButton = styleDashboardButton(new JButton("Course Catalog"), "📚");
+        timetableButton = styleDashboardButton(new JButton("My Timetable"), "📅");
+        gradesButton = styleDashboardButton(new JButton("My Grades"), "📊");
+        transcriptButton = styleDashboardButton(new JButton("Transcript"), "📄");
 
-        mainPanel.add(menuPanel, BorderLayout.SOUTH);
+        menuGridPanel.add(coursesButton);
+        menuGridPanel.add(timetableButton);
+        menuGridPanel.add(gradesButton);
+        menuGridPanel.add(transcriptButton);
 
-        add(mainPanel);
+        add(menuGridPanel, BorderLayout.CENTER);
+    }
+
+    private JButton styleDashboardButton(JButton button, String icon) {
+        button.setText("<html><center><span style='font-size: 32px;'>" + icon + "</span><br/><br/>"
+                + button.getText() + "</center></html>");
+        button.setFont(UITheme.FONT_SUB_HEADER);
+        button.setForeground(UITheme.COLOR_GRAY_DARKEST);
+        button.setBackground(UITheme.COLOR_WHITE);
+        button.setOpaque(true);
+        button.setFocusPainted(false);
+        button.setBorder(BorderFactory.createLineBorder(new Color(220, 220, 220)));
+        button.setHorizontalAlignment(SwingConstants.CENTER);
+        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        button.setPreferredSize(new Dimension(200, 150));
+
+        button.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                if (button.isEnabled()) {
+                    button.setBackground(UITheme.COLOR_PRIMARY_TEAL);
+                    button.setForeground(UITheme.COLOR_WHITE);
+                }
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                button.setBackground(UITheme.COLOR_WHITE);
+                button.setForeground(UITheme.COLOR_GRAY_DARKEST);
+            }
+        });
+        return button;
     }
 
     private void setupActions() {
         logoutButton.addActionListener(e -> logout());
-
-        // Connect buttons to their respective windows
         coursesButton.addActionListener(e -> openCourseCatalog());
         timetableButton.addActionListener(e -> openTimetable());
         gradesButton.addActionListener(e -> openGrades());
@@ -102,12 +127,18 @@ public class StudentDashboard extends JFrame {
         boolean maintenanceOn = AccessControl.shouldShowMaintenanceBanner();
         maintenanceBanner.setVisible(maintenanceOn);
 
-        // Disable action buttons in maintenance mode
         boolean allowActions = !maintenanceOn;
-        coursesButton.setEnabled(allowActions); // Registering is disabled
-        timetableButton.setEnabled(true); // Viewing timetable should be allowed
-        gradesButton.setEnabled(true);    // Viewing grades should be allowed
-        transcriptButton.setEnabled(true); // Viewing/downloading transcript allowed
+        coursesButton.setEnabled(allowActions);
+        timetableButton.setEnabled(true);
+        gradesButton.setEnabled(true);
+        transcriptButton.setEnabled(true);
+
+        if (!allowActions) {
+            coursesButton.setToolTipText("Registration is disabled during maintenance mode");
+            // Set disabled look for the button
+            coursesButton.setBackground(new Color(230, 230, 230));
+            coursesButton.setForeground(UITheme.COLOR_GRAY_LIGHT);
+        }
     }
 
     private void openCourseCatalog() {
