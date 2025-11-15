@@ -10,25 +10,20 @@ public class Section {
     private String semester;
     private int year;
 
-    // For display
+    // --- ADD THESE 5 FIELDS ---
+    // For display (from joined tables)
+    private String courseCode;
     private String courseTitle;
-    private String instructorName;
+    private String instructorName; // This will just be the instructor_id for now
+    private int credits;
+    private int currentEnrollment; // For tracking Filled/Total
 
     public Section() {}
 
-    public Section(String sectionId, String courseId, String instructorId, String dayTime,
-                   String room, int capacity, String semester, int year) {
-        this.sectionId = sectionId;
-        this.courseId = courseId;
-        this.instructorId = instructorId;
-        this.dayTime = dayTime;
-        this.room = room;
-        this.capacity = capacity;
-        this.semester = semester;
-        this.year = year;
-    }
+    // (Constructor is fine, we will use setters)
 
-    // Getters and Setters
+    // --- Getters and Setters for all fields ---
+
     public String getSectionId() { return sectionId; }
     public void setSectionId(String sectionId) { this.sectionId = sectionId; }
 
@@ -53,16 +48,25 @@ public class Section {
     public int getYear() { return year; }
     public void setYear(int year) { this.year = year; }
 
+    // --- GETTERS/SETTERS FOR NEW FIELDS ---
+
+    public String getCourseCode() { return courseCode; }
+    public void setCourseCode(String courseCode) { this.courseCode = courseCode; }
+
     public String getCourseTitle() { return courseTitle; }
     public void setCourseTitle(String courseTitle) { this.courseTitle = courseTitle; }
 
     public String getInstructorName() { return instructorName; }
     public void setInstructorName(String instructorName) { this.instructorName = instructorName; }
 
-    public boolean hasAvailableSeats(int currentEnrollment) {
-        return currentEnrollment < capacity;
-    }
+    public int getCredits() { return credits; }
+    public void setCredits(int credits) { this.credits = credits; }
 
+    public int getCurrentEnrollment() { return currentEnrollment; }
+    public void setCurrentEnrollment(int currentEnrollment) { this.currentEnrollment = currentEnrollment; }
+
+
+    // (toString is fine)
     @Override
     public String toString() {
         return sectionId + " - " + courseTitle + " (" + dayTime + ", " + room + ")";

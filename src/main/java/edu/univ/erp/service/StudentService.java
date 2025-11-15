@@ -1,96 +1,63 @@
-package edu.univ.erp.service;
+package edu.univ.erp.data;
 
-import edu.univ.erp.access.AccessControl;
-import edu.univ.erp.data.CourseDAO;
-import edu.univ.erp.data.EnrollmentDAO;
-import edu.univ.erp.data.SectionDAO;
-import edu.univ.erp.data.StudentDAO;
-import edu.univ.erp.domain.Course;
 import edu.univ.erp.domain.Enrollment;
-import edu.univ.erp.domain.Section;
-import edu.univ.erp.domain.Student;
-import java.sql.SQLException;
+import java.sql.*;
+import java.util.ArrayList;
 import java.util.List;
 
-public class StudentService {
+public class EnrollmentDAO {
 
-    /**
-     * Get course catalog (PDF: Browse course catalog)
-     */
-    public List<Course> getCourseCatalog() throws SQLException {
-        return CourseDAO.getAllCourses();
+    public static List<Enrollment> getEnrollmentsByStudent(String studentId) throws SQLException {
+        List<Enrollment> enrollments = new ArrayList<>();
+
+        // --- MODIFIED SQL QUERY ---
+        // Added c.title as course_title
+        String sql = "SELECT e.enrollment_id, e.student_id, e.section_id, e.status, " +
+                "c.code as course_code, c.title as course_title, s.day_time as section_info " +
+                "FROM enrollments e " +
+                "JOIN sections s ON e.section_id = s.section_id " +
+                "JOIN courses c ON s.course_id = c.course_id " +
+                "WHERE e.student_id = ?";
+
+        try (Connection conn = DatabaseConnection.getErpConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, studentId);
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                Enrollment enrollment = new Enrollment();
+                enrollment.setEnrollmentId(rs.getString("enrollment_id"));
+                enrollment.setStudentId(rs.getString("student_id"));
+                enrollment.setSectionId(rs.getString("section_id"));
+                enrollment.setStatus(rs.getString("status"));
+                enrollment.setCourseCode(rs.getString("course_code"));
+                enrollment.setSectionInfo(rs.getString("section_info"));
+
+                // --- SET NEW FIELD ---
+                enrollment.setCourseTitle(rs.getString("course_title"));
+
+                enrollments.add(enrollment);
+            }
+        }
+        return enrollments;
     }
 
-    /**
-     * Get all sections for course catalog display
-     */
-    public List<Section> getAvailableSections() throws SQLException {
-        List<Section> sections = SectionDAO.getAllSections();
-        // Add current enrollment info
-        for (Section section : sections) {
-            int currentEnrollment = SectionDAO.getCurrentEnrollment(section.getSectionId());
-            section.setCapacity(currentEnrollment); // Reusing capacity field to show current/total
-        }
-        return sections;
+    // ... enrollStudent(...) method is unchanged ...
+    public static boolean enrollStudent(String studentId, String sectionId) throws SQLException {
+        // ... (existing code)
     }
 
-    /**
-     * Register for section (PDF: Register only if seats available and not duplicate)
-     */
-    public boolean registerForSection(String studentId, String sectionId) throws SQLException {
-        // Check access control
-        if (!AccessControl.isActionAllowed("register", studentId)) {
-            throw new SecurityException("Action not allowed. Check maintenance mode or permissions.");
-        }
-
-        // Check if section has available seats
-        int currentEnrollment = SectionDAO.getCurrentEnrollment(sectionId);
-        Section section = SectionDAO.getAllSections().stream()
-                .filter(s -> s.getSectionId().equals(sectionId))
-                .findFirst()
-                .orElse(null);
-
-        if (section == null || currentEnrollment >= section.getCapacity()) {
-            throw new IllegalStateException("Section is full or not found.");
-        }
-
-        // Check for duplicate enrollment
-        if (EnrollmentDAO.isStudentEnrolled(studentId, sectionId)) {
-            throw new IllegalStateException("Already enrolled in this section.");
-        }
-
-        return EnrollmentDAO.enrollStudent(studentId, sectionId);
+    // ... dropEnrollment(...) method is unchanged ...
+    public static boolean dropEnrollment(String enrollmentId) throws SQLException {
+        // ... (existing code)
     }
 
-    /**
-     * Drop section (PDF: Drop before deadline)
-     */
-    public boolean dropSection(String enrollmentId, String studentId) throws SQLException {
-        // Check access control
-        if (!AccessControl.isActionAllowed("drop", studentId)) {
-            throw new SecurityException("Action not allowed. Check maintenance mode or permissions.");
-        }
-
-        // Add deadline logic here if needed
-        return EnrollmentDAO.dropEnrollment(enrollmentId);
+    // ... isStudentEnrolled(...) method is unchanged ...
+    public static boolean isStudentEnrolled(String studentId, String sectionId) throws SQLException {
+        // ... (existing code)
     }
 
-    /**
-     * Get student enrollments (PDF: View timetable, grades)
-     */
-    public List<Enrollment> getStudentEnrollments(String studentId) throws SQLException {
-        // Check access control - students can only see their own data
-        if (!AccessControl.isActionAllowed("view_enrollments", studentId)) {
-            throw new SecurityException("Access denied.");
-        }
-
-        return EnrollmentDAO.getEnrollmentsByStudent(studentId);
-    }
-
-    /**
-     * Get student profile
-     */
-    public Student getStudentProfile(String studentId) throws SQLException {
-        return StudentDAO.findByUserId(studentId);
+    // ... getEnrollmentsBySection(...) method is unchanged ...
+    public static List<Enrollment> getEnrollmentsBySection(String sectionId) throws SQLException {
+        // ... (existing code)
     }
 }

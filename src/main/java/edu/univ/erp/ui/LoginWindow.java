@@ -5,7 +5,6 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.sql.SQLException;
 
 public class LoginWindow extends JFrame {
     private JTextField usernameField;
@@ -20,82 +19,90 @@ public class LoginWindow extends JFrame {
 
     private void setupWindow() {
         setTitle("University ERP - Login");
-        setSize(400, 300);
+        setSize(450, 450); // Give it more breathing room
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
+        // Set the background color for the content pane
+        getContentPane().setBackground(UITheme.COLOR_BACKGROUND);
     }
 
     private void createComponents() {
         // Main panel with centered alignment
         JPanel mainPanel = new JPanel();
         mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
-        mainPanel.setBorder(BorderFactory.createEmptyBorder(40, 40, 40, 40));
+        mainPanel.setBorder(UITheme.BORDER_PADDING);
+        mainPanel.setBackground(UITheme.COLOR_BACKGROUND); // Use theme background
 
         // Title - Centered
         JLabel titleLabel = new JLabel("University ERP System");
-        titleLabel.setFont(new Font("Arial", Font.BOLD, 18));
+        UITheme.styleHeaderLabel(titleLabel); // Use theme header style
         titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
         // Form panel with fixed width
         JPanel formPanel = new JPanel();
         formPanel.setLayout(new BoxLayout(formPanel, BoxLayout.Y_AXIS));
-        formPanel.setMaximumSize(new Dimension(300, 150));
+        formPanel.setMaximumSize(new Dimension(300, 200)); // Increased height
+        formPanel.setBackground(UITheme.COLOR_BACKGROUND); // Match background
 
-        // Username row
-        JPanel userPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
-        userPanel.setMaximumSize(new Dimension(300, 35));
+        // --- Username row ---
         JLabel userLabel = new JLabel("Username:");
-        userLabel.setPreferredSize(new Dimension(80, 25));
-        usernameField = new JTextField(15);
-        usernameField.setPreferredSize(new Dimension(180, 25));
-        userPanel.add(userLabel);
-        userPanel.add(usernameField);
+        UITheme.styleLabel(userLabel); // Use theme label style
+        userLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        // Password row
-        JPanel passPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
-        passPanel.setMaximumSize(new Dimension(300, 35));
+        usernameField = new JTextField(15);
+        UITheme.styleTextField(usernameField); // Use theme text field style
+        usernameField.setAlignmentX(Component.LEFT_ALIGNMENT);
+        usernameField.setMaximumSize(new Dimension(300, 45)); // Set max size
+
+        // --- Password row ---
         JLabel passLabel = new JLabel("Password:");
-        passLabel.setPreferredSize(new Dimension(80, 25));
+        UITheme.styleLabel(passLabel); // Use theme label style
+        passLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+
         passwordField = new JPasswordField(15);
-        passwordField.setPreferredSize(new Dimension(180, 25));
-        passPanel.add(passLabel);
-        passPanel.add(passwordField);
+        UITheme.styleTextField(passwordField); // Use theme text field style
+        passwordField.setAlignmentX(Component.LEFT_ALIGNMENT);
+        passwordField.setMaximumSize(new Dimension(300, 45)); // Set max size
 
         // Login button - Centered
         loginButton = new JButton("Login");
+        UITheme.stylePrimaryButton(loginButton); // Use theme primary button style
         loginButton.setAlignmentX(Component.CENTER_ALIGNMENT);
-        loginButton.setPreferredSize(new Dimension(100, 30));
+        loginButton.setPreferredSize(new Dimension(100, 40));
+        loginButton.setMaximumSize(new Dimension(100, 40));
 
         // Add everything with consistent spacing
         mainPanel.add(titleLabel);
-        mainPanel.add(Box.createVerticalStrut(30));
+        mainPanel.add(Box.createVerticalStrut(40)); // More space
 
-        formPanel.add(userPanel);
-        formPanel.add(Box.createVerticalStrut(15));
-        formPanel.add(passPanel);
+        // Add components to form panel
+        formPanel.add(userLabel);
+        formPanel.add(Box.createVerticalStrut(5));
+        formPanel.add(usernameField);
+        formPanel.add(Box.createVerticalStrut(20)); // More space
+        formPanel.add(passLabel);
+        formPanel.add(Box.createVerticalStrut(5));
+        formPanel.add(passwordField);
+        formPanel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
         mainPanel.add(formPanel);
-        mainPanel.add(Box.createVerticalStrut(25));
+        mainPanel.add(Box.createVerticalStrut(30)); // More space
         mainPanel.add(loginButton);
 
         add(mainPanel);
     }
 
     private void setupActions() {
-        loginButton.addActionListener(new ActionListener() {
+        // Create a single action listener for logging in
+        ActionListener loginAction = new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 handleLogin();
             }
-        });
+        };
 
-        // Enter key support
-        passwordField.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                handleLogin();
-            }
-        });
+        loginButton.addActionListener(loginAction);
+        passwordField.addActionListener(loginAction); // Also triggers on "Enter"
     }
 
     private void handleLogin() {
@@ -107,39 +114,45 @@ public class LoginWindow extends JFrame {
             return;
         }
 
-        // Use the fixed AuthService
+        // Use the AuthService to login
         boolean loginSuccess = AuthService.login(username, password);
 
         if (loginSuccess) {
-            showSuccess("Welcome, " + username + "!");
+            // Don't show a popup, just open the dashboard
             openDashboard();
         } else {
-            showError("Login failed! Try: admin1/admin123");
+            showError("Login failed! Invalid username or password.");
         }
     }
 
     private void openDashboard() {
-        this.setVisible(false); // Hide login window
+        this.dispose(); // Close login window
 
         String role = AuthService.getCurrentUserRole();
 
-        switch (role) {
-            case "admin":
-                new AdminDashboard().setVisible(true);
-                break;
-            case "student":
-                new StudentDashboard().setVisible(true);
-                break;
-            case "instructor":
-                new InstructorDashboard().setVisible(true);
-                break;
-            default:
-                showError("Unknown user role: " + role);
-                this.setVisible(true); // Show login again
-                break;
-        }
+        // Use invokeLater to ensure UI updates are on the Event Dispatch Thread
+        SwingUtilities.invokeLater(new Runnable() {
+            public void run() {
+                switch (role) {
+                    case "admin":
+                        new AdminDashboard().setVisible(true);
+                        break;
+                    case "student":
+                        new StudentDashboard().setVisible(true);
+                        break;
+                    case "instructor":
+                        new InstructorDashboard().setVisible(true);
+                        break;
+                    default:
+                        showError("Unknown user role: " + role);
+                        new LoginWindow().setVisible(true); // Show login again
+                        break;
+                }
+            }
+        });
     }
 
+    // No changes to showSuccess or showError
     private void showSuccess(String message) {
         JOptionPane.showMessageDialog(this, message, "Success", JOptionPane.INFORMATION_MESSAGE);
     }
@@ -155,9 +168,5 @@ public class LoginWindow extends JFrame {
                 new LoginWindow().setVisible(true);
             }
         });
-    }
-
-    public static void main(String[] args) {
-        startApplication();
     }
 }
