@@ -9,9 +9,16 @@ public class SectionDAO {
 
     public static List<Section> getAllSections() throws SQLException {
         List<Section> sections = new ArrayList<>();
+        // --- MODIFIED SQL QUERY ---
+        // Added c.code, c.credits, and a LEFT JOIN for instructor name
         String sql = "SELECT s.section_id, s.course_id, s.instructor_id, s.day_time, s.room, " +
-                "s.capacity, s.semester, s.year, c.title as course_title " +
-                "FROM sections s JOIN courses c ON s.course_id = c.course_id";
+                "s.capacity, s.semester, s.year, " +
+                "c.code as course_code, c.title as course_title, c.credits, " +
+                "i.user_id as instructor_name " + // Using user_id as name, as no 'name' field exists
+                "FROM sections s " +
+                "JOIN courses c ON s.course_id = c.course_id " +
+                "LEFT JOIN instructors i ON s.instructor_id = i.user_id"; // LEFT JOIN in case instructor is unassigned
+
         try (Connection conn = DatabaseConnection.getErpConnection();
              PreparedStatement stmt = conn.prepareStatement(sql);
              ResultSet rs = stmt.executeQuery()) {
@@ -25,7 +32,13 @@ public class SectionDAO {
                 section.setCapacity(rs.getInt("capacity"));
                 section.setSemester(rs.getString("semester"));
                 section.setYear(rs.getInt("year"));
+
+                // --- SET NEW FIELDS ---
+                section.setCourseCode(rs.getString("course_code"));
                 section.setCourseTitle(rs.getString("course_title"));
+                section.setCredits(rs.getInt("credits"));
+                section.setInstructorName(rs.getString("instructor_name")); // This is the instructor's user_id
+
                 sections.add(section);
             }
         }
@@ -34,9 +47,13 @@ public class SectionDAO {
 
     public static List<Section> getSectionsByInstructor(String instructorId) throws SQLException {
         List<Section> sections = new ArrayList<>();
+        // --- MODIFIED SQL QUERY ---
+        // Added c.code, c.credits, and instructor name (which is just the ID here)
         String sql = "SELECT s.section_id, s.course_id, s.instructor_id, s.day_time, s.room, " +
-                "s.capacity, s.semester, s.year, c.title as course_title " +
-                "FROM sections s JOIN courses c ON s.course_id = c.course_id " +
+                "s.capacity, s.semester, s.year, " +
+                "c.code as course_code, c.title as course_title, c.credits " +
+                "FROM sections s " +
+                "JOIN courses c ON s.course_id = c.course_id " +
                 "WHERE s.instructor_id = ?";
         try (Connection conn = DatabaseConnection.getErpConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -52,7 +69,13 @@ public class SectionDAO {
                 section.setCapacity(rs.getInt("capacity"));
                 section.setSemester(rs.getString("semester"));
                 section.setYear(rs.getInt("year"));
+
+                // --- SET NEW FIELDS ---
+                section.setCourseCode(rs.getString("course_code"));
                 section.setCourseTitle(rs.getString("course_title"));
+                section.setCredits(rs.getInt("credits"));
+                section.setInstructorName(rs.getString("instructor_id")); // Set name as the ID
+
                 sections.add(section);
             }
         }
