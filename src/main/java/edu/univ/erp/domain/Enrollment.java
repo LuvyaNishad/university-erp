@@ -11,6 +11,9 @@ public class Enrollment {
     private String courseCode;
     private String sectionInfo;
 
+    // --- ADD THIS FIELD ---
+    private String courseTitle;
+
     public Enrollment() {}
 
     public Enrollment(String enrollmentId, String studentId, String sectionId, String status) {
@@ -40,6 +43,10 @@ public class Enrollment {
 
     public String getSectionInfo() { return sectionInfo; }
     public void setSectionInfo(String sectionInfo) { this.sectionInfo = sectionInfo; }
+
+    // --- ADD THESE METHODS ---
+    public String getCourseTitle() { return courseTitle; }
+    public void setCourseTitle(String courseTitle) { this.courseTitle = courseTitle; }
 
     @Override
     public String toString() {

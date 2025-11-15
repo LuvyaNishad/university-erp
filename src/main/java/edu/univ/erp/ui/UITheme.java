@@ -57,6 +57,10 @@ public class UITheme {
     public static final Border BORDER_TEXT_PADDING = BorderFactory.createEmptyBorder(10, 10, 10, 10);
     public static final Border BORDER_TEXT_LINE = BorderFactory.createLineBorder(new Color(200, 200, 200));
 
+    // --- ADD THIS LINE TO FIX THE ERROR ---
+    public static final Border BORDER_TABLE = BorderFactory.createLineBorder(new Color(200, 200, 200));
+
+
     /**
      * Applies the primary action button style (IIITD Teal).
      * @param button The JButton to style.

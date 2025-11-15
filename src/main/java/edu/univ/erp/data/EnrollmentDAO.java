@@ -10,13 +10,13 @@ public class EnrollmentDAO {
     public static List<Enrollment> getEnrollmentsByStudent(String studentId) throws SQLException {
         List<Enrollment> enrollments = new ArrayList<>();
 
-        // --- THIS IS THE CORRECTED QUERY ---
-        // It now selects "c.title as course_title"
+        // --- THIS SQL IS CORRECT ---
+        // It joins 'courses' and selects 'c.title as course_title'
         String sql = "SELECT e.enrollment_id, e.student_id, e.section_id, e.status, " +
                 "c.code as course_code, c.title as course_title, s.day_time as section_info " +
                 "FROM enrollments e " +
                 "JOIN sections s ON e.section_id = s.section_id " +
-                "JOIN courses c ON s.course_id = c.course_id " + // <-- Correct JOIN
+                "JOIN courses c ON s.course_id = c.course_id " +
                 "WHERE e.student_id = ?";
 
         try (Connection conn = DatabaseConnection.getErpConnection();
@@ -32,8 +32,8 @@ public class EnrollmentDAO {
                 enrollment.setCourseCode(rs.getString("course_code"));
                 enrollment.setSectionInfo(rs.getString("section_info"));
 
-                // --- THIS IS THE CORRESPONDING FIX ---
-                // This line sets the title that was fetched from the DB
+                // --- THIS SETTER IS CORRECT ---
+                // It populates the field added to Enrollment.java
                 enrollment.setCourseTitle(rs.getString("course_title"));
 
                 enrollments.add(enrollment);
@@ -42,14 +42,11 @@ public class EnrollmentDAO {
         return enrollments;
     }
 
-    // ... other methods (enrollStudent, dropEnrollment, etc.) ...
-
     public static boolean enrollStudent(String studentId, String sectionId) throws SQLException {
-        // This implementation seems to be missing from the provided file,
-        // but it would go here.
         String sql = "INSERT INTO enrollments (enrollment_id, student_id, section_id, status) VALUES (?, ?, ?, 'registered')";
         try (Connection conn = DatabaseConnection.getErpConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
+            // Generate a unique ID for the enrollment
             String enrollmentId = "ENR_" + System.currentTimeMillis();
             stmt.setString(1, enrollmentId);
             stmt.setString(2, studentId);
@@ -74,13 +71,13 @@ public class EnrollmentDAO {
             stmt.setString(1, studentId);
             stmt.setString(2, sectionId);
             ResultSet rs = stmt.executeQuery();
-            return rs.next();
+            return rs.next(); // Returns true if a record is found
         }
     }
 
     public static List<Enrollment> getEnrollmentsBySection(String sectionId) throws SQLException {
         List<Enrollment> enrollments = new ArrayList<>();
-        // This query joins with students to get student details for the instructor's view
+        // This query is for instructors, so it joins 'students' to get their details
         String sql = "SELECT e.enrollment_id, e.student_id, e.section_id, e.status, s.roll_no, s.program " +
                 "FROM enrollments e JOIN students s ON e.student_id = s.user_id " +
                 "WHERE e.section_id = ? AND e.status = 'registered'";
@@ -94,7 +91,7 @@ public class EnrollmentDAO {
                 en.setStudentId(rs.getString("student_id"));
                 en.setSectionId(rs.getString("section_id"));
                 en.setStatus(rs.getString("status"));
-                // Set studentName to a combo of roll_no and program for the instructor
+                // This sets the student's name for the instructor's gradebook
                 en.setStudentName("Roll No: " + rs.getString("roll_no") + " - " + rs.getString("program"));
                 enrollments.add(en);
             }
