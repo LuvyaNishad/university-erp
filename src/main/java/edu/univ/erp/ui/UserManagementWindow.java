@@ -22,7 +22,7 @@ public class UserManagementWindow extends JDialog {
         super(owner, "User Management", true);
         this.adminService = new AdminService();
 
-        setSize(500, 600);
+        setSize(500, 600); // This size is correct
         setLocationRelativeTo(owner);
         setLayout(new BorderLayout(10, 10));
 
@@ -103,15 +103,22 @@ public class UserManagementWindow extends JDialog {
         closeButton.addActionListener(e -> dispose());
         createButton.addActionListener(e -> handleCreateUser());
 
-        add(mainPanel);
+        // This is the crucial part. Add the fully constructed mainPanel
+        // to the JDialog's content pane.
+        add(mainPanel, BorderLayout.CENTER);
     }
 
     private void toggleRolePanels() {
         String selectedRole = (String) roleComboBox.getSelectedItem();
         studentPanel.setVisible("student".equals(selectedRole));
         instructorPanel.setVisible("instructor".equals(selectedRole));
-        // Admin has no extra profile, so both are hidden
-        pack(); // Resize dialog to fit content
+
+        // --- THIS LINE WAS THE BUG ---
+        // pack(); // <-- REMOVED. This was causing the window to resize incorrectly.
+
+        // Repaint the container to ensure changes are visible
+        revalidate();
+        repaint();
     }
 
     private JPanel createFormField(String labelText, JComponent field) {
@@ -145,6 +152,7 @@ public class UserManagementWindow extends JDialog {
             }
 
             // 2. Create Auth Record
+            // This is a placeholder, as AdminService.createUser is a placeholder
             boolean authCreated = adminService.createUser(userId, username, password, role);
             if (!authCreated) {
                 showError("Failed to create user in Auth DB. User ID or Username might already exist.");
