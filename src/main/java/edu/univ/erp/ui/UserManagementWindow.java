@@ -6,7 +6,7 @@ import edu.univ.erp.service.AdminService;
 
 import javax.swing.*;
 import java.awt.*;
-import java.sql.SQLException; // Import SQLException
+import java.sql.SQLException; // <-- MAKE SURE THIS IS IMPORTED
 
 /**
  * A window for Admins to create new users (students and instructors).
@@ -23,7 +23,7 @@ public class UserManagementWindow extends JDialog {
         super(owner, "User Management", true);
         this.adminService = new AdminService();
 
-        setSize(500, 600);
+        setSize(500, 600); // This size is correct
         setLocationRelativeTo(owner);
         setLayout(new BorderLayout(10, 10));
 
@@ -112,6 +112,7 @@ public class UserManagementWindow extends JDialog {
         studentPanel.setVisible("student".equals(selectedRole));
         instructorPanel.setVisible("instructor".equals(selectedRole));
 
+        // Repaint the container to ensure changes are visible
         revalidate();
         repaint();
     }

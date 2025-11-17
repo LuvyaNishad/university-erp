@@ -32,13 +32,13 @@ public class AdminService {
 
     /**
      * Create new user in Auth DB (PDF: Add users)
-     * --- THIS IS THE IMPLEMENTED METHOD ---
+     * --- THIS IS THE IMPLEMENTED METHOD (REPLACING THE PLACEHOLDER) ---
      */
     public boolean createUser(String userId, String username, String password, String role) throws SQLException {
         // 1. Hash the password
         String hashedPassword = PasswordUtil.hashPassword(password);
 
-        // 2. Call the AuthDAO method to create the user in the auth database
+        // 2. Call the new AuthDAO method to create the user in the auth database
         return AuthDAO.createUser(userId, username, hashedPassword, role);
     }
 

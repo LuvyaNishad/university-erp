@@ -58,7 +58,7 @@ public class AuthDAO {
     }
 
     /**
-     * --- ADD THIS NEW METHOD ---
+     * --- THIS IS THE NEW METHOD THAT WAS MISSING ---
      * Inserts a new user into the authentication database.
      * @param userId The unique user ID (e.g., "stu1", "adm1")
      * @param username The username for login
