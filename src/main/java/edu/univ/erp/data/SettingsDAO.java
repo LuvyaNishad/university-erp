@@ -23,20 +23,26 @@ public class SettingsDAO {
                 }
             }
         }
-        return null;
+        return null; // Will return null if key doesn't exist
     }
 
     /**
-     * Updates a setting value.
+     * --- THIS IS THE CORRECTED METHOD ---
+     * Updates a setting value. If the key does not exist, it inserts it.
      * @param key The key (e.g., "maintenance_mode")
      * @param value The new value to set
      */
     public static void updateSetting(String key, String value) throws SQLException {
-        String sql = "UPDATE settings SET setting_value = ? WHERE setting_key = ?";
+        // This is an "UPSERT" command. It tries to INSERT a new row.
+        // If the PRIMARY KEY (setting_key) already exists, it runs the UPDATE part instead.
+        String sql = "INSERT INTO settings (setting_key, setting_value) VALUES (?, ?) " +
+                "ON DUPLICATE KEY UPDATE setting_value = ?";
+
         try (Connection conn = DatabaseConnection.getErpConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setString(1, value);
-            stmt.setString(2, key);
+            stmt.setString(1, key);
+            stmt.setString(2, value);
+            stmt.setString(3, value); // Set the value again for the UPDATE part
             stmt.executeUpdate();
         }
     }
