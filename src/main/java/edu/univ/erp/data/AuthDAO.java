@@ -56,4 +56,31 @@ public class AuthDAO {
             System.out.println("💥 AUTH: Failed to update last login: " + e.getMessage());
         }
     }
+
+    /**
+     * --- ADD THIS NEW METHOD ---
+     * Inserts a new user into the authentication database.
+     * @param userId The unique user ID (e.g., "stu1", "adm1")
+     * @param username The username for login
+     * @param hashedPassword The bcrypt-hashed password
+     * @param role The user's role ("student", "instructor", "admin")
+     * @return true if successful, false otherwise
+     */
+    public static boolean createUser(String userId, String username, String hashedPassword, String role) throws SQLException {
+        String sql = "INSERT INTO users_auth (user_id, username, password_hash, role, status) VALUES (?, ?, ?, ?, 'active')";
+
+        try (Connection conn = DatabaseConnection.getAuthConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setString(1, userId);
+            stmt.setString(2, username);
+            stmt.setString(3, hashedPassword);
+            stmt.setString(4, role);
+
+            int rowsAffected = stmt.executeUpdate();
+            return rowsAffected > 0;
+        }
+        // If a duplicate user_id or username is entered, this will throw an SQLException
+        // which is caught by the AdminService and shown to the user.
+    }
 }

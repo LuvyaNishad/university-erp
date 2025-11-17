@@ -1,6 +1,5 @@
 package edu.univ.erp.service;
 
-import edu.univ.erp.access.AccessControl;
 import edu.univ.erp.auth.PasswordUtil;
 import edu.univ.erp.data.AuthDAO;
 import edu.univ.erp.data.*;
@@ -15,24 +14,32 @@ public class AdminService {
 
     /**
      * Toggle maintenance mode (PDF: Toggle Maintenance Mode)
+     * --- THIS IS THE CORRECTED METHOD ---
      */
     public void setMaintenanceMode(boolean enabled) throws SQLException {
+        // FIX: Call static method on the class, not a new instance
         SettingsDAO.updateSetting("maintenance_on", enabled ? "true" : "false");
     }
 
+    /**
+     * --- THIS IS THE CORRECTED METHOD ---
+     */
     public boolean isMaintenanceMode() throws SQLException {
+        // FIX: Call static method on the class, not a new instance
         String value = SettingsDAO.getSetting("maintenance_on");
         return "true".equals(value);
     }
 
     /**
      * Create new user in Auth DB (PDF: Add users)
+     * --- THIS IS THE IMPLEMENTED METHOD ---
      */
-    public boolean createUser(String userId, String username, String password, String role) {
-        // This would normally insert into Auth DB
-        // For now, we'll just return true as placeholder
-        // In real implementation, you'd use AuthDAO to insert into users_auth table
-        return true;
+    public boolean createUser(String userId, String username, String password, String role) throws SQLException {
+        // 1. Hash the password
+        String hashedPassword = PasswordUtil.hashPassword(password);
+
+        // 2. Call the AuthDAO method to create the user in the auth database
+        return AuthDAO.createUser(userId, username, hashedPassword, role);
     }
 
     /**
@@ -65,9 +72,10 @@ public class AdminService {
 
     /**
      * Assign instructor to section (PDF: Assign instructor)
+     * (This is a placeholder, as it's handled by SectionManagementWindow)
      */
     public boolean assignInstructorToSection(String sectionId, String instructorId) throws SQLException {
-        // Implementation would update section's instructor_id
+        // This logic is handled by the createSection method
         return true;
     }
 

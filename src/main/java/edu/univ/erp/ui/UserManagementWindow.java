@@ -6,6 +6,7 @@ import edu.univ.erp.service.AdminService;
 
 import javax.swing.*;
 import java.awt.*;
+import java.sql.SQLException; // Import SQLException
 
 /**
  * A window for Admins to create new users (students and instructors).
@@ -22,7 +23,7 @@ public class UserManagementWindow extends JDialog {
         super(owner, "User Management", true);
         this.adminService = new AdminService();
 
-        setSize(500, 600); // This size is correct
+        setSize(500, 600);
         setLocationRelativeTo(owner);
         setLayout(new BorderLayout(10, 10));
 
@@ -103,8 +104,6 @@ public class UserManagementWindow extends JDialog {
         closeButton.addActionListener(e -> dispose());
         createButton.addActionListener(e -> handleCreateUser());
 
-        // This is the crucial part. Add the fully constructed mainPanel
-        // to the JDialog's content pane.
         add(mainPanel, BorderLayout.CENTER);
     }
 
@@ -113,10 +112,6 @@ public class UserManagementWindow extends JDialog {
         studentPanel.setVisible("student".equals(selectedRole));
         instructorPanel.setVisible("instructor".equals(selectedRole));
 
-        // --- THIS LINE WAS THE BUG ---
-        // pack(); // <-- REMOVED. This was causing the window to resize incorrectly.
-
-        // Repaint the container to ensure changes are visible
         revalidate();
         repaint();
     }
@@ -138,6 +133,9 @@ public class UserManagementWindow extends JDialog {
         return panel;
     }
 
+    /**
+     * --- THIS IS THE CORRECTED METHOD ---
+     */
     private void handleCreateUser() {
         try {
             // 1. Get Auth Details
@@ -152,10 +150,12 @@ public class UserManagementWindow extends JDialog {
             }
 
             // 2. Create Auth Record
-            // This is a placeholder, as AdminService.createUser is a placeholder
+            // This now calls the REAL AdminService method and can throw an exception
             boolean authCreated = adminService.createUser(userId, username, password, role);
+
             if (!authCreated) {
-                showError("Failed to create user in Auth DB. User ID or Username might already exist.");
+                // This case should not be hit if an exception is thrown, but it's good practice
+                showError("Failed to create user in Auth DB. Unknown error.");
                 return;
             }
 
@@ -187,13 +187,22 @@ public class UserManagementWindow extends JDialog {
                 yearField.setText("");
                 deptField.setText("");
             } else {
-                showError("Auth record created, but failed to create profile in ERP DB.");
+                // This is a critical error. The user has a login but no profile.
+                showError("Auth record created, but FAILED to create profile in ERP DB. Please check database.");
             }
 
         } catch (NumberFormatException e) {
             showError("Year must be a valid number.");
+        } catch (SQLException e) {
+            // This will catch duplicate User ID / Username errors
+            if (e.getMessage().contains("Duplicate entry")) {
+                showError("Error: User ID or Username already exists.");
+            } else {
+                showError("Database error creating user: " + e.getMessage());
+            }
         } catch (Exception e) {
-            showError("Error creating user: " + e.getMessage());
+            // Catch any other unexpected errors
+            showError("An unexpected error occurred: " + e.getMessage());
         }
     }
 
