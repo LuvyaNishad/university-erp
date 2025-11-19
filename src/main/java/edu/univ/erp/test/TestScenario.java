@@ -47,10 +47,7 @@ public class TestScenario {
 
         // 4. Test Change Password Logic (Mock)
         System.out.print("TEST 4: Change Password (Mock check)... ");
-        // We won't actually change it here to not break future logins,
-        // but we can verify the method exists and compiles.
         try {
-            // Simulating a method call
             Class.forName("edu.univ.erp.service.AuthService").getMethod("changePassword", String.class, String.class);
             System.out.println("✅ PASS (Method signature verified)");
         } catch (Exception e) {

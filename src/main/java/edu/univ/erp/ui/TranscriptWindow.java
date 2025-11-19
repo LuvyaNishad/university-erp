@@ -81,12 +81,11 @@ public class TranscriptWindow extends JDialog {
 
             for (Enrollment en : enrollments) {
                 List<Grade> grades = gradeService.getGradesByEnrollment(en.getEnrollmentId());
-                // Find "Final" grade
                 Grade finalGrade = grades.stream()
                         .filter(g -> "final".equalsIgnoreCase(g.getComponent()))
                         .findFirst().orElse(null);
 
-                String scoreStr = (finalGrade != null) ? String.valueOf(finalGrade.getScore()) : "IP"; // In Progress
+                String scoreStr = (finalGrade != null) ? String.valueOf(finalGrade.getScore()) : "IP";
                 String gradeStr = (finalGrade != null && finalGrade.getFinalGrade() != null) ? finalGrade.getFinalGrade() : "--";
 
                 tableModel.addRow(new Object[]{
@@ -113,7 +112,7 @@ public class TranscriptWindow extends JDialog {
 
         if (fileChooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
             try (FileWriter writer = new FileWriter(fileChooser.getSelectedFile())) {
-                // --- IMPROVED ROBUST CSV LOGIC ---
+                // --- ROBUST CSV LOGIC (QUOTED FIELDS) ---
                 writer.append("\"Course Code\",\"Course Title\",\"Final Score\",\"Grade\"\n");
 
                 for (int i = 0; i < tableModel.getRowCount(); i++) {
@@ -122,7 +121,7 @@ public class TranscriptWindow extends JDialog {
                     String score = (String) tableModel.getValueAt(i, 2);
                     String grade = (String) tableModel.getValueAt(i, 3);
 
-                    // Wrap in quotes to handle commas safely
+                    // This handles commas inside titles, ensuring data integrity
                     writer.append("\"").append(code).append("\",");
                     writer.append("\"").append(title).append("\",");
                     writer.append("\"").append(score).append("\",");

@@ -36,7 +36,6 @@ public class AdminDashboard extends JFrame {
     }
 
     private void createComponents() {
-        // --- 1. NORTH: Header Panel ---
         JPanel headerPanel = new JPanel(new BorderLayout(20, 0));
         headerPanel.setBackground(UITheme.COLOR_WHITE);
         headerPanel.setBorder(BorderFactory.createCompoundBorder(
@@ -48,7 +47,6 @@ public class AdminDashboard extends JFrame {
         UITheme.styleSubHeaderLabel(titleLabel);
         headerPanel.add(titleLabel, BorderLayout.WEST);
 
-        // User Panel (Icon + Name + Password + Logout)
         JPanel userPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         userPanel.setOpaque(false);
         JLabel userIcon = new JLabel("👤");
@@ -56,12 +54,10 @@ public class AdminDashboard extends JFrame {
         JLabel userLabel = new JLabel(AuthService.getCurrentUsername() + " (Admin)");
         UITheme.styleLabel(userLabel);
 
-        // Change Password Button
         changePassButton = new JButton("Password");
         UITheme.styleSecondaryButton(changePassButton);
         changePassButton.setPreferredSize(new Dimension(100, 35));
 
-        // Logout Button
         logoutButton = new JButton("Logout");
         UITheme.styleSecondaryButton(logoutButton);
         logoutButton.setPreferredSize(new Dimension(90, 35));
@@ -73,14 +69,12 @@ public class AdminDashboard extends JFrame {
         headerPanel.add(userPanel, BorderLayout.EAST);
 
         maintenanceBanner = new JLabel("...", JLabel.CENTER);
-
         JPanel topPanel = new JPanel(new BorderLayout());
         topPanel.add(maintenanceBanner, BorderLayout.NORTH);
         topPanel.add(headerPanel, BorderLayout.CENTER);
         add(topPanel, BorderLayout.NORTH);
 
-        // --- 2. CENTER: Menu Grid Panel ---
-        // Increased rows to accommodate Backup button
+        // Grid for buttons
         JPanel menuGridPanel = new JPanel(new GridLayout(2, 3, 25, 25));
         menuGridPanel.setBackground(UITheme.COLOR_BACKGROUND);
         menuGridPanel.setBorder(BorderFactory.createEmptyBorder(40, 40, 40, 40));
@@ -140,7 +134,6 @@ public class AdminDashboard extends JFrame {
         backupButton.addActionListener(e -> performBackup());
     }
 
-    // ... (Keep openUserManagement, openCourseManagement, openSectionManagement, toggleMaintenanceMode as they are) ...
     private void openUserManagement() { SwingUtilities.invokeLater(() -> new UserManagementWindow(this).setVisible(true)); }
     private void openCourseManagement() { SwingUtilities.invokeLater(() -> new CourseManagementWindow(this).setVisible(true)); }
     private void openSectionManagement() { SwingUtilities.invokeLater(() -> new SectionManagementWindow(this).setVisible(true)); }
@@ -149,13 +142,9 @@ public class AdminDashboard extends JFrame {
         try {
             boolean currentMode = adminService.isMaintenanceMode();
             adminService.setMaintenanceMode(!currentMode);
-            String status = !currentMode ? "ON" : "OFF";
-            String message = "Maintenance mode is now " + status + ".";
-            JOptionPane.showMessageDialog(this, message, "Settings Updated", JOptionPane.INFORMATION_MESSAGE);
-        } catch (SQLException ex) {
-            JOptionPane.showMessageDialog(this, "Error: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
-        } finally {
             updateMaintenanceState();
+        } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(this, "Error: " + ex.getMessage());
         }
     }
 
@@ -181,22 +170,20 @@ public class AdminDashboard extends JFrame {
         }
     }
 
-    // --- BONUS: Backup Logic ---
     private void performBackup() {
         try {
-            String dbName = "university_erp"; // This only backs up ERP, not auth, per PDF hint
+            String dbName = "university_erp";
             String dbUser = "root";
             String dbPass = "root123";
             String savePath = "backup_" + System.currentTimeMillis() + ".sql";
 
-            // Note: mysqldump must be in system PATH for this to work
             ProcessBuilder pb = new ProcessBuilder(
                     "mysqldump", "-u" + dbUser, "-p" + dbPass, dbName, "-r", savePath
             );
             pb.start().waitFor();
-            JOptionPane.showMessageDialog(this, "Backup saved to: " + savePath, "Backup Successful", JOptionPane.INFORMATION_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Backup saved to: " + savePath);
         } catch (Exception e) {
-            JOptionPane.showMessageDialog(this, "Backup failed. Ensure 'mysqldump' is installed.\n" + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Backup failed. Ensure 'mysqldump' is installed.\n" + e.getMessage());
         }
     }
 

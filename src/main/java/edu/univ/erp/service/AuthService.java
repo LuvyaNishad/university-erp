@@ -50,7 +50,6 @@ public class AuthService {
 
             // 2. Verify old password
             if (!PasswordUtil.checkPassword(oldPassword, currentHash)) {
-                System.out.println("❌ Change Password: Old password incorrect.");
                 return false;
             }
 
@@ -73,4 +72,5 @@ public class AuthService {
     public static String getCurrentUserRole() { return SessionManager.getInstance().getCurrentUserRole(); }
     public static String getCurrentUserId() { return SessionManager.getInstance().getCurrentUserId(); }
     public static String getCurrentUsername() { return SessionManager.getInstance().getCurrentUsername(); }
+    public static boolean isLoggedIn() { return SessionManager.getInstance().isLoggedIn(); }
 }

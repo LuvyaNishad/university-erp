@@ -5,6 +5,7 @@ import java.sql.*;
 
 public class AuthDAO {
 
+    // 1. Login Verification (Database Only - No hardcoding)
     public static String[] verifyLogin(String username, String password) {
         System.out.println("🔍 AUTH: Checking login for: " + username);
 
@@ -39,9 +40,32 @@ public class AuthDAO {
         return null;
     }
 
-    /**
-     * Fetches the current password hash for a user to verify "Old Password".
-     */
+    // 2. Update Last Login Timestamp
+    public static void updateLastLogin(String userId) {
+        String sql = "UPDATE users_auth SET last_login = CURRENT_TIMESTAMP WHERE user_id = ?";
+        try (Connection conn = DatabaseConnection.getAuthConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, userId);
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    // 3. Create User (For Admin "Manage Users")
+    public static boolean createUser(String userId, String username, String hashedPassword, String role) throws SQLException {
+        String sql = "INSERT INTO users_auth (user_id, username, password_hash, role, status) VALUES (?, ?, ?, ?, 'active')";
+        try (Connection conn = DatabaseConnection.getAuthConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, userId);
+            stmt.setString(2, username);
+            stmt.setString(3, hashedPassword);
+            stmt.setString(4, role);
+            return stmt.executeUpdate() > 0;
+        }
+    }
+
+    // 4. Get Password Hash (For "Change Password" - verifying old pass)
     public static String getPasswordHash(String userId) throws SQLException {
         String sql = "SELECT password_hash FROM users_auth WHERE user_id = ?";
         try (Connection conn = DatabaseConnection.getAuthConnection();
@@ -55,38 +79,13 @@ public class AuthDAO {
         return null;
     }
 
-    /**
-     * Updates the password hash for a user.
-     */
+    // 5. Update Password (For "Change Password" - saving new pass)
     public static boolean updatePassword(String userId, String newHash) throws SQLException {
         String sql = "UPDATE users_auth SET password_hash = ? WHERE user_id = ?";
         try (Connection conn = DatabaseConnection.getAuthConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, newHash);
             stmt.setString(2, userId);
-            return stmt.executeUpdate() > 0;
-        }
-    }
-
-    public static void updateLastLogin(String userId) {
-        String sql = "UPDATE users_auth SET last_login = CURRENT_TIMESTAMP WHERE user_id = ?";
-        try (Connection conn = DatabaseConnection.getAuthConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setString(1, userId);
-            stmt.executeUpdate();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public static boolean createUser(String userId, String username, String hashedPassword, String role) throws SQLException {
-        String sql = "INSERT INTO users_auth (user_id, username, password_hash, role, status) VALUES (?, ?, ?, ?, 'active')";
-        try (Connection conn = DatabaseConnection.getAuthConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setString(1, userId);
-            stmt.setString(2, username);
-            stmt.setString(3, hashedPassword);
-            stmt.setString(4, role);
             return stmt.executeUpdate() > 0;
         }
     }
