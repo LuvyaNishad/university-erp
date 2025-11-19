@@ -1,7 +1,9 @@
 package edu.univ.erp.service;
 
+import edu.univ.erp.auth.PasswordUtil;
 import edu.univ.erp.auth.SessionManager;
-import edu.univ.erp.data.AuthDAO;  // ← CORRECT IMPORT from data package
+import edu.univ.erp.data.AuthDAO;
+import java.sql.SQLException;
 
 public class AuthService {
 
@@ -9,7 +11,7 @@ public class AuthService {
         System.out.println("🚀 AUTH SERVICE: Login attempt for: " + username);
 
         try {
-            // FIRST: Try database authentication
+            // ONLY try database authentication. No fallbacks.
             String[] authResult = AuthDAO.verifyLogin(username, password);
 
             if (authResult != null) {
@@ -17,73 +19,58 @@ public class AuthService {
                 String userUsername = authResult[1];
                 String role = authResult[2];
 
-                // Update last login
                 AuthDAO.updateLastLogin(userId);
-
-                // Start session
-                SessionManager session = SessionManager.getInstance();
-                session.login(userId, userUsername, role);
+                SessionManager.getInstance().login(userId, userUsername, role);
 
                 System.out.println("🎉 AUTH SERVICE: Login COMPLETE for " + username);
                 return true;
+            } else {
+                System.out.println("❌ AUTH SERVICE: Login failed (Invalid credentials).");
+                return false;
             }
-
-            // SECOND: Fallback to simple check (for demo/backup)
-            System.out.println("🔄 AUTH SERVICE: Trying fallback authentication...");
-            if (simpleLoginCheck(username, password)) {
-                System.out.println("🎉 AUTH SERVICE: Fallback login SUCCESS for " + username);
-                return true;
-            }
-
-            System.out.println("❌ AUTH SERVICE: ALL login attempts failed for " + username);
-            return false;
 
         } catch (Exception e) {
-            System.out.println("💥 AUTH SERVICE: Exception during login: " + e.getMessage());
+            System.out.println("💥 AUTH SERVICE: Database error: " + e.getMessage());
             e.printStackTrace();
             return false;
         }
     }
 
-    private static boolean simpleLoginCheck(String username, String password) {
-        // Simple backup authentication (remove after project)
-        if ("admin1".equals(username) && "admin123".equals(password)) {
-            SessionManager.getInstance().login("admin1", "admin1", "admin");
-            return true;
+    /**
+     * Changes the current user's password.
+     */
+    public static boolean changePassword(String oldPassword, String newPassword) {
+        String userId = SessionManager.getInstance().getCurrentUserId();
+        if (userId == null) return false;
+
+        try {
+            // 1. Get current hash from DB
+            String currentHash = AuthDAO.getPasswordHash(userId);
+            if (currentHash == null) return false;
+
+            // 2. Verify old password
+            if (!PasswordUtil.checkPassword(oldPassword, currentHash)) {
+                System.out.println("❌ Change Password: Old password incorrect.");
+                return false;
+            }
+
+            // 3. Hash new password
+            String newHash = PasswordUtil.hashPassword(newPassword);
+
+            // 4. Update DB
+            return AuthDAO.updatePassword(userId, newHash);
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
         }
-        if ("stu1".equals(username) && "student123".equals(password)) {
-            SessionManager.getInstance().login("stu1", "stu1", "student");
-            return true;
-        }
-        if ("stu2".equals(username) && "student123".equals(password)) {
-            SessionManager.getInstance().login("stu2", "stu2", "student");
-            return true;
-        }
-        if ("inst1".equals(username) && "instructor123".equals(password)) {
-            SessionManager.getInstance().login("inst1", "inst1", "instructor");
-            return true;
-        }
-        return false;
     }
 
     public static void logout() {
-        System.out.println("🚪 AUTH SERVICE: Logging out...");
         SessionManager.getInstance().logout();
     }
 
-    public static String getCurrentUserRole() {
-        return SessionManager.getInstance().getCurrentUserRole();
-    }
-
-    public static String getCurrentUserId() {
-        return SessionManager.getInstance().getCurrentUserId();
-    }
-
-    public static String getCurrentUsername() {
-        return SessionManager.getInstance().getCurrentUsername();
-    }
-
-    public static boolean isLoggedIn() {
-        return SessionManager.getInstance().isLoggedIn();
-    }
+    public static String getCurrentUserRole() { return SessionManager.getInstance().getCurrentUserRole(); }
+    public static String getCurrentUserId() { return SessionManager.getInstance().getCurrentUserId(); }
+    public static String getCurrentUsername() { return SessionManager.getInstance().getCurrentUsername(); }
 }
