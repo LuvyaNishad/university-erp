@@ -9,6 +9,8 @@ import java.sql.SQLException;
 
 public class AdminDashboard extends JFrame {
     private JButton logoutButton;
+    private JButton changePassButton; // Added
+    private JButton backupButton;     // Added for BONUS
     private JButton maintenanceButton;
     private JButton manageUsersButton;
     private JButton manageCoursesButton;
@@ -21,7 +23,7 @@ public class AdminDashboard extends JFrame {
         setupWindow();
         createComponents();
         setupActions();
-        updateMaintenanceState(); // Sets initial state
+        updateMaintenanceState();
     }
 
     private void setupWindow() {
@@ -46,23 +48,30 @@ public class AdminDashboard extends JFrame {
         UITheme.styleSubHeaderLabel(titleLabel);
         headerPanel.add(titleLabel, BorderLayout.WEST);
 
-        // User Panel (Icon + Name + Logout)
+        // User Panel (Icon + Name + Password + Logout)
         JPanel userPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         userPanel.setOpaque(false);
         JLabel userIcon = new JLabel("👤");
         userIcon.setFont(UITheme.FONT_SUB_HEADER);
         JLabel userLabel = new JLabel(AuthService.getCurrentUsername() + " (Admin)");
         UITheme.styleLabel(userLabel);
+
+        // Change Password Button
+        changePassButton = new JButton("Password");
+        UITheme.styleSecondaryButton(changePassButton);
+        changePassButton.setPreferredSize(new Dimension(100, 35));
+
+        // Logout Button
         logoutButton = new JButton("Logout");
         UITheme.styleSecondaryButton(logoutButton);
-        logoutButton.setPreferredSize(new Dimension(100, 35));
+        logoutButton.setPreferredSize(new Dimension(90, 35));
 
         userPanel.add(userIcon);
         userPanel.add(userLabel);
+        userPanel.add(changePassButton);
         userPanel.add(logoutButton);
         headerPanel.add(userPanel, BorderLayout.EAST);
 
-        // Maintenance Banner
         maintenanceBanner = new JLabel("...", JLabel.CENTER);
 
         JPanel topPanel = new JPanel(new BorderLayout());
@@ -71,27 +80,26 @@ public class AdminDashboard extends JFrame {
         add(topPanel, BorderLayout.NORTH);
 
         // --- 2. CENTER: Menu Grid Panel ---
-        JPanel menuGridPanel = new JPanel(new GridLayout(2, 2, 25, 25));
+        // Increased rows to accommodate Backup button
+        JPanel menuGridPanel = new JPanel(new GridLayout(2, 3, 25, 25));
         menuGridPanel.setBackground(UITheme.COLOR_BACKGROUND);
         menuGridPanel.setBorder(BorderFactory.createEmptyBorder(40, 40, 40, 40));
 
-        // Buttons
         manageUsersButton = styleDashboardButton(new JButton("Manage Users"), "👤");
         manageCoursesButton = styleDashboardButton(new JButton("Manage Courses"), "📚");
         manageSectionsButton = styleDashboardButton(new JButton("Manage Sections"), "📦");
         maintenanceButton = styleDashboardButton(new JButton("Maintenance: ..."), "⚙️");
+        backupButton = styleDashboardButton(new JButton("Backup DB"), "💾"); // Bonus Button
 
         menuGridPanel.add(manageUsersButton);
         menuGridPanel.add(manageCoursesButton);
         menuGridPanel.add(manageSectionsButton);
         menuGridPanel.add(maintenanceButton);
+        menuGridPanel.add(backupButton);
 
         add(menuGridPanel, BorderLayout.CENTER);
     }
 
-    /**
-     * Helper to style the new dashboard buttons
-     */
     private JButton styleDashboardButton(JButton button, String icon) {
         button.setText("<html><center><span style='font-size: 32px;'>" + icon + "</span><br/><br/>"
                 + button.getText() + "</center></html>");
@@ -105,18 +113,14 @@ public class AdminDashboard extends JFrame {
         button.setCursor(new Cursor(Cursor.HAND_CURSOR));
         button.setPreferredSize(new Dimension(200, 150));
 
-        // Hover effect
         button.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseEntered(java.awt.event.MouseEvent evt) {
-                // Only apply hover if NOT the maintenance button
                 if (button.isEnabled() && !button.equals(maintenanceButton)) {
                     button.setBackground(UITheme.COLOR_PRIMARY_TEAL);
                     button.setForeground(UITheme.COLOR_WHITE);
                 }
             }
-
             public void mouseExited(java.awt.event.MouseEvent evt) {
-                // Only reset color if NOT the maintenance button
                 if (!button.equals(maintenanceButton)) {
                     button.setBackground(UITheme.COLOR_WHITE);
                     button.setForeground(UITheme.COLOR_GRAY_DARKEST);
@@ -128,83 +132,71 @@ public class AdminDashboard extends JFrame {
 
     private void setupActions() {
         logoutButton.addActionListener(e -> logout());
+        changePassButton.addActionListener(e -> new ChangePasswordDialog(this).setVisible(true));
         manageUsersButton.addActionListener(e -> openUserManagement());
         manageCoursesButton.addActionListener(e -> openCourseManagement());
         manageSectionsButton.addActionListener(e -> openSectionManagement());
         maintenanceButton.addActionListener(e -> toggleMaintenanceMode());
+        backupButton.addActionListener(e -> performBackup());
     }
 
-    private void openUserManagement() {
-        SwingUtilities.invokeLater(() -> new UserManagementWindow(this).setVisible(true));
-    }
+    // ... (Keep openUserManagement, openCourseManagement, openSectionManagement, toggleMaintenanceMode as they are) ...
+    private void openUserManagement() { SwingUtilities.invokeLater(() -> new UserManagementWindow(this).setVisible(true)); }
+    private void openCourseManagement() { SwingUtilities.invokeLater(() -> new CourseManagementWindow(this).setVisible(true)); }
+    private void openSectionManagement() { SwingUtilities.invokeLater(() -> new SectionManagementWindow(this).setVisible(true)); }
 
-    private void openCourseManagement() {
-        SwingUtilities.invokeLater(() -> new CourseManagementWindow(this).setVisible(true));
-    }
-
-    private void openSectionManagement() {
-        SwingUtilities.invokeLater(() -> new SectionManagementWindow(this).setVisible(true));
-    }
-
-    /**
-     * This method correctly toggles the state in the database.
-     */
     private void toggleMaintenanceMode() {
         try {
             boolean currentMode = adminService.isMaintenanceMode();
-            // This line flips the value and saves it to the DB
             adminService.setMaintenanceMode(!currentMode);
-
             String status = !currentMode ? "ON" : "OFF";
-            String message = "Maintenance mode is now " + status + ".\n\n";
-            message += !currentMode ?
-                    "Students and Instructors now have VIEW-ONLY access." :
-                    "Normal read/write access has been restored.";
+            String message = "Maintenance mode is now " + status + ".";
             JOptionPane.showMessageDialog(this, message, "Settings Updated", JOptionPane.INFORMATION_MESSAGE);
         } catch (SQLException ex) {
-            JOptionPane.showMessageDialog(this,
-                    "Error updating maintenance mode: " + ex.getMessage(),
-                    "Error", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Error: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
         } finally {
-            // This re-reads the new value from the DB and updates the color
             updateMaintenanceState();
         }
     }
 
-    /**
-     * This method reads the *current* state and updates the UI.
-     * The color logic is now set to your request.
-     */
     private void updateMaintenanceState() {
         try {
-            // 1. Read the CURRENT state from the database
             boolean maintenanceOn = adminService.isMaintenanceMode();
             String status = maintenanceOn ? "ON" : "OFF";
+            maintenanceButton.setText("<html><center><span style='font-size: 32px;'>⚙️</span><br/><br/>" + "Maintenance: " + status + "</center></html>");
 
-            maintenanceButton.setText("<html><center><span style='font-size: 32px;'>⚙️</span><br/><br/>"
-                    + "Maintenance: " + status + "</center></html>");
-
-            // --- 2. SET COLORS AS REQUESTED ---
             if (maintenanceOn) {
-                // User requested GREEN for ON
                 maintenanceButton.setBackground(UITheme.COLOR_SUCCESS_GREEN);
                 maintenanceButton.setForeground(UITheme.COLOR_WHITE);
-
-                // Update Banner
                 maintenanceBanner.setText("⚠️ MAINTENANCE MODE ACTIVE - Students/Instructors are view-only");
                 UITheme.styleMaintenanceBanner(maintenanceBanner);
                 maintenanceBanner.setVisible(true);
             } else {
-                // User requested RED for OFF
                 maintenanceButton.setBackground(UITheme.COLOR_DANGER_RED);
                 maintenanceButton.setForeground(UITheme.COLOR_WHITE);
-
-                // Hide Banner
                 maintenanceBanner.setVisible(false);
             }
         } catch (SQLException ex) {
-            maintenanceButton.setText("<html><center><span style='font-size: 32px;'>⚙️</span><br/><br/>Maintenance: ERROR</center></html>");
             maintenanceButton.setBackground(Color.GRAY);
+        }
+    }
+
+    // --- BONUS: Backup Logic ---
+    private void performBackup() {
+        try {
+            String dbName = "university_erp"; // This only backs up ERP, not auth, per PDF hint
+            String dbUser = "root";
+            String dbPass = "root123";
+            String savePath = "backup_" + System.currentTimeMillis() + ".sql";
+
+            // Note: mysqldump must be in system PATH for this to work
+            ProcessBuilder pb = new ProcessBuilder(
+                    "mysqldump", "-u" + dbUser, "-p" + dbPass, dbName, "-r", savePath
+            );
+            pb.start().waitFor();
+            JOptionPane.showMessageDialog(this, "Backup saved to: " + savePath, "Backup Successful", JOptionPane.INFORMATION_MESSAGE);
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Backup failed. Ensure 'mysqldump' is installed.\n" + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
 

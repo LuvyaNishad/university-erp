@@ -6,8 +6,8 @@ import javax.swing.*;
 import java.awt.*;
 
 public class StudentDashboard extends JFrame {
-
     private JButton logoutButton;
+    private JButton changePassButton; // Added
     private JButton coursesButton;
     private JButton timetableButton;
     private JButton gradesButton;
@@ -31,7 +31,6 @@ public class StudentDashboard extends JFrame {
     }
 
     private void createComponents() {
-        // --- 1. NORTH: Header Panel ---
         JPanel headerPanel = new JPanel(new BorderLayout(20, 0));
         headerPanel.setBackground(UITheme.COLOR_WHITE);
         headerPanel.setBorder(BorderFactory.createCompoundBorder(
@@ -43,19 +42,25 @@ public class StudentDashboard extends JFrame {
         UITheme.styleSubHeaderLabel(titleLabel);
         headerPanel.add(titleLabel, BorderLayout.WEST);
 
-        // User Panel (Icon + Name + Logout)
+        // User Panel
         JPanel userPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
-        userPanel.setOpaque(false); // Transparent background
+        userPanel.setOpaque(false);
         JLabel userIcon = new JLabel("👤");
         userIcon.setFont(UITheme.FONT_SUB_HEADER);
         JLabel userLabel = new JLabel(AuthService.getCurrentUsername() + " (Student)");
         UITheme.styleLabel(userLabel);
+
+        changePassButton = new JButton("Password");
+        UITheme.styleSecondaryButton(changePassButton);
+        changePassButton.setPreferredSize(new Dimension(100, 35));
+
         logoutButton = new JButton("Logout");
         UITheme.styleSecondaryButton(logoutButton);
-        logoutButton.setPreferredSize(new Dimension(100, 35));
+        logoutButton.setPreferredSize(new Dimension(90, 35));
 
         userPanel.add(userIcon);
         userPanel.add(userLabel);
+        userPanel.add(changePassButton);
         userPanel.add(logoutButton);
         headerPanel.add(userPanel, BorderLayout.EAST);
 
@@ -68,12 +73,10 @@ public class StudentDashboard extends JFrame {
         topPanel.add(headerPanel, BorderLayout.CENTER);
         add(topPanel, BorderLayout.NORTH);
 
-        // --- 2. CENTER: Menu Grid Panel ---
         JPanel menuGridPanel = new JPanel(new GridLayout(2, 2, 25, 25));
         menuGridPanel.setBackground(UITheme.COLOR_BACKGROUND);
         menuGridPanel.setBorder(BorderFactory.createEmptyBorder(40, 40, 40, 40));
 
-        // Buttons from PDF
         coursesButton = styleDashboardButton(new JButton("Course Catalog"), "📚");
         timetableButton = styleDashboardButton(new JButton("My Timetable"), "📅");
         gradesButton = styleDashboardButton(new JButton("My Grades"), "📊");
@@ -88,8 +91,7 @@ public class StudentDashboard extends JFrame {
     }
 
     private JButton styleDashboardButton(JButton button, String icon) {
-        button.setText("<html><center><span style='font-size: 32px;'>" + icon + "</span><br/><br/>"
-                + button.getText() + "</center></html>");
+        button.setText("<html><center><span style='font-size: 32px;'>" + icon + "</span><br/><br/>" + button.getText() + "</center></html>");
         button.setFont(UITheme.FONT_SUB_HEADER);
         button.setForeground(UITheme.COLOR_GRAY_DARKEST);
         button.setBackground(UITheme.COLOR_WHITE);
@@ -108,8 +110,10 @@ public class StudentDashboard extends JFrame {
                 }
             }
             public void mouseExited(java.awt.event.MouseEvent evt) {
-                button.setBackground(UITheme.COLOR_WHITE);
-                button.setForeground(UITheme.COLOR_GRAY_DARKEST);
+                if (button.isEnabled()) {
+                    button.setBackground(UITheme.COLOR_WHITE);
+                    button.setForeground(UITheme.COLOR_GRAY_DARKEST);
+                }
             }
         });
         return button;
@@ -117,6 +121,7 @@ public class StudentDashboard extends JFrame {
 
     private void setupActions() {
         logoutButton.addActionListener(e -> logout());
+        changePassButton.addActionListener(e -> new ChangePasswordDialog(this).setVisible(true)); // Logic added
         coursesButton.addActionListener(e -> openCourseCatalog());
         timetableButton.addActionListener(e -> openTimetable());
         gradesButton.addActionListener(e -> openGrades());
@@ -126,36 +131,22 @@ public class StudentDashboard extends JFrame {
     private void checkMaintenanceMode() {
         boolean maintenanceOn = AccessControl.shouldShowMaintenanceBanner();
         maintenanceBanner.setVisible(maintenanceOn);
-
         boolean allowActions = !maintenanceOn;
         coursesButton.setEnabled(allowActions);
         timetableButton.setEnabled(true);
         gradesButton.setEnabled(true);
         transcriptButton.setEnabled(true);
-
         if (!allowActions) {
             coursesButton.setToolTipText("Registration is disabled during maintenance mode");
-            // Set disabled look for the button
             coursesButton.setBackground(new Color(230, 230, 230));
             coursesButton.setForeground(UITheme.COLOR_GRAY_LIGHT);
         }
     }
 
-    private void openCourseCatalog() {
-        SwingUtilities.invokeLater(() -> new CourseCatalogWindow(this).setVisible(true));
-    }
-
-    private void openTimetable() {
-        SwingUtilities.invokeLater(() -> new MyTimetableWindow(this).setVisible(true));
-    }
-
-    private void openGrades() {
-        SwingUtilities.invokeLater(() -> new MyGradesWindow(this).setVisible(true));
-    }
-
-    private void downloadTranscript() {
-        SwingUtilities.invokeLater(() -> new TranscriptWindow(this).setVisible(true));
-    }
+    private void openCourseCatalog() { SwingUtilities.invokeLater(() -> new CourseCatalogWindow(this).setVisible(true)); }
+    private void openTimetable() { SwingUtilities.invokeLater(() -> new MyTimetableWindow(this).setVisible(true)); }
+    private void openGrades() { SwingUtilities.invokeLater(() -> new MyGradesWindow(this).setVisible(true)); }
+    private void downloadTranscript() { SwingUtilities.invokeLater(() -> new TranscriptWindow(this).setVisible(true)); }
 
     private void logout() {
         AuthService.logout();
