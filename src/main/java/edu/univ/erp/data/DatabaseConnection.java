@@ -11,7 +11,7 @@ public class DatabaseConnection {
     private static final String AUTH_DB_URL = "jdbc:mysql://" + HOST + ":" + PORT + "/university_auth";
     private static final String ERP_DB_URL = "jdbc:mysql://" + HOST + ":" + PORT + "/university_erp";
     private static final String DB_USER = "root";
-    private static final String DB_PASSWORD = "root123";
+    private static final String DB_PASSWORD = "root123"; // Make sure this matches your MySQL password
 
     static {
         initializeDatabase();
@@ -137,6 +137,7 @@ public class DatabaseConnection {
                 authStmt.execute("DELETE FROM users_auth");
 
                 // Insert with REAL working BCrypt hashes
+                // admin123, student123, instructor123
                 authStmt.execute("INSERT INTO users_auth (user_id, username, role, password_hash) VALUES " +
                         "('admin1', 'admin1', 'admin', '$2a$10$jOE.4.rG3UqQe1vQszmWUOVfxMQhdROJAxLw42q2ZtuSa72ue02.O'), " +
                         "('stu1', 'stu1', 'student', '$2a$10$ngaHhz716f5IKnRvDe8B0elogj5rqTU1SxLQyfYisqkvjvps1VnmC'), " +
@@ -150,11 +151,15 @@ public class DatabaseConnection {
             try (Connection erpConn = getErpConnection();
                  Statement erpStmt = erpConn.createStatement()) {
 
-                // Clear any existing data
+                // --- FIX IS HERE: Clear existing data in CORRECT ORDER ---
+                // Must delete child tables (grades, enrollments) before parents (students, sections)
+                // to avoid Foreign Key errors.
+                erpStmt.execute("DELETE FROM grades");
+                erpStmt.execute("DELETE FROM enrollments");
+                erpStmt.execute("DELETE FROM sections");
                 erpStmt.execute("DELETE FROM students");
                 erpStmt.execute("DELETE FROM instructors");
                 erpStmt.execute("DELETE FROM courses");
-                erpStmt.execute("DELETE FROM sections");
                 erpStmt.execute("DELETE FROM settings");
 
                 // Insert sample data
@@ -177,6 +182,8 @@ public class DatabaseConnection {
                         "('ENR001', 'stu1', 'SEC001', 'registered'), " +
                         "('ENR002', 'stu2', 'SEC001', 'registered')");
 
+                // Insert default settings (Maintenance Mode OFF)
+                // Using INSERT IGNORE or REPLACE wouldn't hurt, but simple INSERT is fine now that we DELETE first.
                 erpStmt.execute("INSERT INTO settings (setting_key, setting_value) VALUES ('maintenance_on', 'false')");
 
                 System.out.println("✅ ERP data inserted successfully");
@@ -208,10 +215,6 @@ public class DatabaseConnection {
         boolean success = testConnections();
         if (success) {
             System.out.println("🎉 Database setup complete! Ready for login.");
-            System.out.println("Test credentials:");
-            System.out.println("Admin: admin1 / admin123");
-            System.out.println("Student: stu1 / student123");
-            System.out.println("Instructor: inst1 / instructor123");
         } else {
             System.out.println("❌ Database setup failed. Check MySQL installation.");
         }
