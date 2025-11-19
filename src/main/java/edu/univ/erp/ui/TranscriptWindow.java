@@ -7,36 +7,30 @@ import edu.univ.erp.service.GradeService;
 import edu.univ.erp.service.StudentService;
 
 import javax.swing.*;
-import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
-import java.io.File;
 import java.io.FileWriter;
-import java.io.IOException;
 import java.util.List;
 
-/**
- * A window for students to view and "download" their academic transcript.
- * This passes the test: "Download transcript (CSV or PDF) listing completed courses/grades"
- */
 public class TranscriptWindow extends JDialog {
 
     private JTable transcriptTable;
+    private DefaultTableModel tableModel;
     private StudentService studentService;
     private GradeService gradeService;
-    private DefaultTableModel tableModel;
+    private List<Enrollment> enrollments;
 
     public TranscriptWindow(JFrame owner) {
-        super(owner, "My Academic Transcript", true);
+        super(owner, "Academic Transcript", true);
         this.studentService = new StudentService();
         this.gradeService = new GradeService();
 
-        setSize(700, 500);
+        setSize(800, 500);
         setLocationRelativeTo(owner);
         setLayout(new BorderLayout(10, 10));
 
         initComponents();
-        loadTranscriptData();
+        loadTranscript();
     }
 
     private void initComponents() {
@@ -44,127 +38,100 @@ public class TranscriptWindow extends JDialog {
         mainPanel.setBorder(UITheme.BORDER_PADDING_DIALOG);
         mainPanel.setBackground(UITheme.COLOR_BACKGROUND);
 
-        JLabel titleLabel = new JLabel("Official Transcript");
+        JLabel titleLabel = new JLabel("Unofficial Transcript");
         UITheme.styleSubHeaderLabel(titleLabel);
-        titleLabel.setBorder(BorderFactory.createEmptyBorder(0, 0, 10, 0));
         mainPanel.add(titleLabel, BorderLayout.NORTH);
 
-        // --- Center: Table ---
-        String[] columnNames = {"Course Code", "Course Title", "Status", "Final Grade"};
+        String[] columnNames = {"Course Code", "Course Title", "Final Score", "Grade"};
         tableModel = new DefaultTableModel(columnNames, 0) {
-            public boolean isCellEditable(int row, int column) {
-                return false;
-            }
+            @Override
+            public boolean isCellEditable(int row, int column) { return false; }
         };
         transcriptTable = new JTable(tableModel);
         JScrollPane scrollPane = new JScrollPane(transcriptTable);
         UITheme.styleTable(scrollPane);
         mainPanel.add(scrollPane, BorderLayout.CENTER);
 
-        // --- Bottom: Button Panel ---
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        buttonPanel.setBackground(UITheme.COLOR_BACKGROUND);
+        JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        bottomPanel.setBackground(UITheme.COLOR_BACKGROUND);
 
-        JButton downloadButton = new JButton("Download as CSV");
-        UITheme.stylePrimaryButton(downloadButton);
-        downloadButton.setPreferredSize(new Dimension(180, 40));
+        JButton exportButton = new JButton("Export CSV");
+        UITheme.stylePrimaryButton(exportButton);
+        exportButton.setPreferredSize(new Dimension(150, 40));
 
         JButton closeButton = new JButton("Close");
         UITheme.styleSecondaryButton(closeButton);
         closeButton.setPreferredSize(new Dimension(100, 40));
 
-        buttonPanel.add(downloadButton);
-        buttonPanel.add(closeButton);
-        mainPanel.add(buttonPanel, BorderLayout.SOUTH);
+        bottomPanel.add(exportButton);
+        bottomPanel.add(closeButton);
+        mainPanel.add(bottomPanel, BorderLayout.SOUTH);
 
-        // --- Action Listeners ---
         closeButton.addActionListener(e -> dispose());
-        downloadButton.addActionListener(e -> handleDownload());
+        exportButton.addActionListener(e -> handleExport());
 
         add(mainPanel);
     }
 
-    /**
-     * Loads all enrollments and their final grades.
-     */
-    private void loadTranscriptData() {
+    private void loadTranscript() {
         try {
             String studentId = AuthService.getCurrentUserId();
-            List<Enrollment> enrollmentList = studentService.getStudentEnrollments(studentId);
+            enrollments = studentService.getStudentEnrollments(studentId);
+            tableModel.setRowCount(0);
 
-            tableModel.setRowCount(0); // Clear table
+            for (Enrollment en : enrollments) {
+                List<Grade> grades = gradeService.getGradesByEnrollment(en.getEnrollmentId());
+                // Find "Final" grade
+                Grade finalGrade = grades.stream()
+                        .filter(g -> "final".equalsIgnoreCase(g.getComponent()))
+                        .findFirst().orElse(null);
 
-            for (Enrollment en : enrollmentList) {
-                // We show all courses, registered or dropped
-
-                String finalGrade = "N/A";
-                try {
-                    List<Grade> grades = gradeService.getGradesByEnrollment(en.getEnrollmentId());
-                    // Find the grade entry marked "final"
-                    for (Grade g : grades) {
-                        if ("final".equalsIgnoreCase(g.getComponent()) && g.getFinalGrade() != null) {
-                            finalGrade = g.getFinalGrade();
-                            break;
-                        }
-                    }
-                } catch (Exception e) {
-                    // Ignore if no grades found
-                }
+                String scoreStr = (finalGrade != null) ? String.valueOf(finalGrade.getScore()) : "IP"; // In Progress
+                String gradeStr = (finalGrade != null && finalGrade.getFinalGrade() != null) ? finalGrade.getFinalGrade() : "--";
 
                 tableModel.addRow(new Object[]{
                         en.getCourseCode(),
-                        en.getCourseTitle(), // This is set by EnrollmentDAO
-                        en.getStatus().toUpperCase(),
-                        finalGrade
+                        en.getCourseTitle(),
+                        scoreStr,
+                        gradeStr
                 });
             }
         } catch (Exception e) {
-            JOptionPane.showMessageDialog(this, "Error loading transcript: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Error loading transcript: " + e.getMessage());
         }
     }
 
-    /**
-     * Handles the "Download" button click.
-     * This is a simplified implementation that saves a CSV to a user-chosen location.
-     */
-    private void handleDownload() {
+    private void handleExport() {
+        if (enrollments == null || enrollments.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "No data to export.", "Info", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+
         JFileChooser fileChooser = new JFileChooser();
-        fileChooser.setDialogTitle("Save Transcript");
-        fileChooser.setSelectedFile(new File("transcript_" + AuthService.getCurrentUserId() + ".csv"));
-        fileChooser.setFileFilter(new FileNameExtensionFilter("CSV File", "csv"));
+        fileChooser.setDialogTitle("Save Transcript as CSV");
+        fileChooser.setSelectedFile(new java.io.File("transcript.csv"));
 
-        int userSelection = fileChooser.showSaveDialog(this);
+        if (fileChooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
+            try (FileWriter writer = new FileWriter(fileChooser.getSelectedFile())) {
+                // --- IMPROVED ROBUST CSV LOGIC ---
+                writer.append("\"Course Code\",\"Course Title\",\"Final Score\",\"Grade\"\n");
 
-        if (userSelection == JFileChooser.APPROVE_OPTION) {
-            File fileToSave = fileChooser.getSelectedFile();
-            try (FileWriter writer = new FileWriter(fileToSave)) {
-                // Write header
-                for (int i = 0; i < tableModel.getColumnCount(); i++) {
-                    writer.append(tableModel.getColumnName(i));
-                    if (i < tableModel.getColumnCount() - 1) {
-                        writer.append(",");
-                    }
-                }
-                writer.append("\n");
-
-                // Write data
                 for (int i = 0; i < tableModel.getRowCount(); i++) {
-                    for (int j = 0; j < tableModel.getColumnCount(); j++) {
-                        writer.append(String.valueOf(tableModel.getValueAt(i, j)));
-                        if (j < tableModel.getColumnCount() - 1) {
-                            writer.append(",");
-                        }
-                    }
-                    writer.append("\n");
+                    String code = (String) tableModel.getValueAt(i, 0);
+                    String title = (String) tableModel.getValueAt(i, 1);
+                    String score = (String) tableModel.getValueAt(i, 2);
+                    String grade = (String) tableModel.getValueAt(i, 3);
+
+                    // Wrap in quotes to handle commas safely
+                    writer.append("\"").append(code).append("\",");
+                    writer.append("\"").append(title).append("\",");
+                    writer.append("\"").append(score).append("\",");
+                    writer.append("\"").append(grade).append("\"\n");
                 }
 
-                JOptionPane.showMessageDialog(this,
-                        "Transcript saved successfully to:\n" + fileToSave.getAbsolutePath(),
-                        "Download Complete",
-                        JOptionPane.INFORMATION_MESSAGE);
-
-            } catch (IOException e) {
-                JOptionPane.showMessageDialog(this, "Error saving file: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(this, "Export successful!");
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, "Export failed: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
             }
         }
     }
