@@ -7,7 +7,7 @@ import java.awt.*;
 
 public class StudentDashboard extends JFrame {
     private JButton logoutButton;
-    private JButton changePassButton; // Added
+    private JButton changePassButton; // Updated button
     private JButton coursesButton;
     private JButton timetableButton;
     private JButton gradesButton;
@@ -50,9 +50,11 @@ public class StudentDashboard extends JFrame {
         JLabel userLabel = new JLabel(AuthService.getCurrentUsername() + " (Student)");
         UITheme.styleLabel(userLabel);
 
-        changePassButton = new JButton("Password");
-        UITheme.styleSecondaryButton(changePassButton);
-        changePassButton.setPreferredSize(new Dimension(100, 35));
+        // --- UPDATED BUTTON ---
+        changePassButton = new JButton("Change Password");
+        UITheme.stylePrimaryButton(changePassButton); // Now Teal
+        changePassButton.setPreferredSize(new Dimension(150, 35)); // Wider
+        // ---------------------
 
         logoutButton = new JButton("Logout");
         UITheme.styleSecondaryButton(logoutButton);
@@ -121,7 +123,7 @@ public class StudentDashboard extends JFrame {
 
     private void setupActions() {
         logoutButton.addActionListener(e -> logout());
-        changePassButton.addActionListener(e -> new ChangePasswordDialog(this).setVisible(true)); // Logic added
+        changePassButton.addActionListener(e -> new ChangePasswordDialog(this).setVisible(true));
         coursesButton.addActionListener(e -> openCourseCatalog());
         timetableButton.addActionListener(e -> openTimetable());
         gradesButton.addActionListener(e -> openGrades());

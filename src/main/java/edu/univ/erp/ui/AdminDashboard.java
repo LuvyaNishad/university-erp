@@ -9,8 +9,8 @@ import java.sql.SQLException;
 
 public class AdminDashboard extends JFrame {
     private JButton logoutButton;
-    private JButton changePassButton; // Added
-    private JButton backupButton;     // Added for BONUS
+    private JButton changePassButton; // Updated button
+    private JButton backupButton;
     private JButton maintenanceButton;
     private JButton manageUsersButton;
     private JButton manageCoursesButton;
@@ -36,6 +36,7 @@ public class AdminDashboard extends JFrame {
     }
 
     private void createComponents() {
+        // --- 1. NORTH: Header Panel ---
         JPanel headerPanel = new JPanel(new BorderLayout(20, 0));
         headerPanel.setBackground(UITheme.COLOR_WHITE);
         headerPanel.setBorder(BorderFactory.createCompoundBorder(
@@ -47,6 +48,7 @@ public class AdminDashboard extends JFrame {
         UITheme.styleSubHeaderLabel(titleLabel);
         headerPanel.add(titleLabel, BorderLayout.WEST);
 
+        // User Panel (Icon + Name + Password + Logout)
         JPanel userPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         userPanel.setOpaque(false);
         JLabel userIcon = new JLabel("👤");
@@ -54,9 +56,11 @@ public class AdminDashboard extends JFrame {
         JLabel userLabel = new JLabel(AuthService.getCurrentUsername() + " (Admin)");
         UITheme.styleLabel(userLabel);
 
-        changePassButton = new JButton("Password");
-        UITheme.styleSecondaryButton(changePassButton);
-        changePassButton.setPreferredSize(new Dimension(100, 35));
+        // --- UPDATED BUTTON ---
+        changePassButton = new JButton("Change Password");
+        UITheme.stylePrimaryButton(changePassButton); // Now Teal
+        changePassButton.setPreferredSize(new Dimension(150, 35)); // Wider
+        // ---------------------
 
         logoutButton = new JButton("Logout");
         UITheme.styleSecondaryButton(logoutButton);
@@ -69,12 +73,13 @@ public class AdminDashboard extends JFrame {
         headerPanel.add(userPanel, BorderLayout.EAST);
 
         maintenanceBanner = new JLabel("...", JLabel.CENTER);
+
         JPanel topPanel = new JPanel(new BorderLayout());
         topPanel.add(maintenanceBanner, BorderLayout.NORTH);
         topPanel.add(headerPanel, BorderLayout.CENTER);
         add(topPanel, BorderLayout.NORTH);
 
-        // Grid for buttons
+        // --- 2. CENTER: Menu Grid Panel ---
         JPanel menuGridPanel = new JPanel(new GridLayout(2, 3, 25, 25));
         menuGridPanel.setBackground(UITheme.COLOR_BACKGROUND);
         menuGridPanel.setBorder(BorderFactory.createEmptyBorder(40, 40, 40, 40));
@@ -83,7 +88,7 @@ public class AdminDashboard extends JFrame {
         manageCoursesButton = styleDashboardButton(new JButton("Manage Courses"), "📚");
         manageSectionsButton = styleDashboardButton(new JButton("Manage Sections"), "📦");
         maintenanceButton = styleDashboardButton(new JButton("Maintenance: ..."), "⚙️");
-        backupButton = styleDashboardButton(new JButton("Backup DB"), "💾"); // Bonus Button
+        backupButton = styleDashboardButton(new JButton("Backup DB"), "💾");
 
         menuGridPanel.add(manageUsersButton);
         menuGridPanel.add(manageCoursesButton);
@@ -142,7 +147,7 @@ public class AdminDashboard extends JFrame {
         try {
             boolean currentMode = adminService.isMaintenanceMode();
             adminService.setMaintenanceMode(!currentMode);
-            updateMaintenanceState();
+            updateMaintenanceState(); // Just update state, no popup needed for toggle itself to avoid spam, or keep it if you prefer
         } catch (SQLException ex) {
             JOptionPane.showMessageDialog(this, "Error: " + ex.getMessage());
         }
@@ -181,9 +186,9 @@ public class AdminDashboard extends JFrame {
                     "mysqldump", "-u" + dbUser, "-p" + dbPass, dbName, "-r", savePath
             );
             pb.start().waitFor();
-            JOptionPane.showMessageDialog(this, "Backup saved to: " + savePath);
+            JOptionPane.showMessageDialog(this, "Backup saved to: " + savePath, "Backup Successful", JOptionPane.INFORMATION_MESSAGE);
         } catch (Exception e) {
-            JOptionPane.showMessageDialog(this, "Backup failed. Ensure 'mysqldump' is installed.\n" + e.getMessage());
+            JOptionPane.showMessageDialog(this, "Backup failed. Ensure 'mysqldump' is installed.\n" + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
 
