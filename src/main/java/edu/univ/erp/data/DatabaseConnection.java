@@ -2,6 +2,7 @@ package edu.univ.erp.data;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
@@ -46,10 +47,9 @@ public class DatabaseConnection {
         try (Connection conn = DriverManager.getConnection(baseUrl, DB_USER, DB_PASSWORD);
              Statement stmt = conn.createStatement()) {
 
-            System.out.println("🚀 Creating databases...");
+            System.out.println("🚀 Checking databases...");
             stmt.execute("CREATE DATABASE IF NOT EXISTS university_auth");
             stmt.execute("CREATE DATABASE IF NOT EXISTS university_erp");
-            System.out.println("✅ Databases created successfully");
 
         } catch (SQLException e) {
             System.err.println("❌ Database creation failed: " + e.getMessage());
@@ -60,7 +60,7 @@ public class DatabaseConnection {
         try (Connection conn = getErpConnection();
              Statement stmt = conn.createStatement()) {
 
-            System.out.println("📦 Creating tables and sample data...");
+            System.out.println("📦 Verifying tables...");
 
             // Create Auth DB tables
             stmt.execute("USE university_auth");
@@ -117,43 +117,54 @@ public class DatabaseConnection {
                     "setting_key VARCHAR(100) PRIMARY KEY, " +
                     "setting_value VARCHAR(500))");
 
-            // Insert sample data with REAL working password hashes
-            insertSampleData();
+            // --- NEW LOGIC: Only insert sample data if the database is EMPTY ---
+            boolean dataExists = false;
+            try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM university_auth.users_auth")) {
+                if (rs.next() && rs.getInt(1) > 0) {
+                    dataExists = true;
+                }
+            }
 
-            System.out.println("✅ Tables and sample data created successfully!");
+            if (!dataExists) {
+                System.out.println("⚠️ Database appears empty. Inserting sample data...");
+                insertSampleData();
+            } else {
+                System.out.println("✅ Existing data found. Skipping sample data insertion.");
+            }
 
         } catch (SQLException e) {
             System.err.println("❌ Table creation failed: " + e.getMessage());
         }
     }
 
+    /**
+     * This method clears all tables and re-inserts defaults.
+     * Now it is only called if the DB is empty, or if manually run via main().
+     */
     private static void insertSampleData() {
         try {
-            // Insert into Auth DB with REAL password hashes
+            // Insert into Auth DB
             try (Connection authConn = getAuthConnection();
                  Statement authStmt = authConn.createStatement()) {
 
-                // Clear any existing data
+                // Clear existing data
                 authStmt.execute("DELETE FROM users_auth");
 
-                // Insert with REAL working BCrypt hashes
-                // admin123, student123, instructor123
+                // Insert defaults
                 authStmt.execute("INSERT INTO users_auth (user_id, username, role, password_hash) VALUES " +
                         "('admin1', 'admin1', 'admin', '$2a$10$jOE.4.rG3UqQe1vQszmWUOVfxMQhdROJAxLw42q2ZtuSa72ue02.O'), " +
                         "('stu1', 'stu1', 'student', '$2a$10$ngaHhz716f5IKnRvDe8B0elogj5rqTU1SxLQyfYisqkvjvps1VnmC'), " +
                         "('stu2', 'stu2', 'student', '$2a$10$obITtpGvaLOueUzNRQGzFOXaljtNV3u0OJFWiXE1eGL5mt.lLF4PS'), " +
                         "('inst1', 'inst1', 'instructor', '$2a$10$obITtpGvaLOueUzNRQGzFOXaljtNV3u0OJFWiXE1eGL5mt.lLF4PS')");
 
-                System.out.println("✅ Auth data inserted with REAL password hashes");
+                System.out.println("✅ Auth data inserted");
             }
 
             // Insert into ERP DB
             try (Connection erpConn = getErpConnection();
                  Statement erpStmt = erpConn.createStatement()) {
 
-                // --- FIX IS HERE: Clear existing data in CORRECT ORDER ---
-                // Must delete child tables (grades, enrollments) before parents (students, sections)
-                // to avoid Foreign Key errors.
+                // Clear existing data (Order matters for foreign keys)
                 erpStmt.execute("DELETE FROM grades");
                 erpStmt.execute("DELETE FROM enrollments");
                 erpStmt.execute("DELETE FROM sections");
@@ -162,7 +173,7 @@ public class DatabaseConnection {
                 erpStmt.execute("DELETE FROM courses");
                 erpStmt.execute("DELETE FROM settings");
 
-                // Insert sample data
+                // Insert defaults
                 erpStmt.execute("INSERT INTO students (user_id, roll_no, program, year) VALUES " +
                         "('stu1', '2023001', 'Computer Science', 2023), " +
                         "('stu2', '2023002', 'Computer Science', 2023)");
@@ -182,14 +193,10 @@ public class DatabaseConnection {
                         "('ENR001', 'stu1', 'SEC001', 'registered'), " +
                         "('ENR002', 'stu2', 'SEC001', 'registered')");
 
-                // Insert default settings (Maintenance Mode OFF)
-                // Using INSERT IGNORE or REPLACE wouldn't hurt, but simple INSERT is fine now that we DELETE first.
                 erpStmt.execute("INSERT INTO settings (setting_key, setting_value) VALUES ('maintenance_on', 'false')");
 
-                System.out.println("✅ ERP data inserted successfully");
+                System.out.println("✅ ERP data inserted");
             }
-
-            System.out.println("✅ All sample data inserted successfully!");
 
         } catch (SQLException e) {
             System.err.println("❌ Sample data insertion failed: " + e.getMessage());
@@ -204,19 +211,14 @@ public class DatabaseConnection {
             return true;
         } catch (SQLException e) {
             System.out.println("❌ MySQL Connection Failed: " + e.getMessage());
-            System.out.println("💡 Check if: MySQL is running and password is correct");
             return false;
         }
     }
 
-    // Test method
+    // Run this file MANUALLY if you want to force a reset of the database
     public static void main(String[] args) {
-        System.out.println("🧪 Testing Database Connection...");
-        boolean success = testConnections();
-        if (success) {
-            System.out.println("🎉 Database setup complete! Ready for login.");
-        } else {
-            System.out.println("❌ Database setup failed. Check MySQL installation.");
-        }
+        System.out.println("⚠️ FORCE RESETTING DATABASE...");
+        insertSampleData();
+        System.out.println("✅ Database has been reset to defaults.");
     }
 }
