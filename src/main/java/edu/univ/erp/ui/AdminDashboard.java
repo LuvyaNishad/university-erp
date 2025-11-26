@@ -7,13 +7,15 @@ import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.OutputStream;
 import java.sql.SQLException;
 
 public class AdminDashboard extends JFrame {
     private JButton logoutButton;
     private JButton changePassButton;
     private JButton backupButton;
-    private JButton restoreButton; // NEW BUTTON
+    private JButton restoreButton;
     private JButton maintenanceButton;
     private JButton manageUsersButton;
     private JButton manageCoursesButton;
@@ -87,14 +89,14 @@ public class AdminDashboard extends JFrame {
         manageSectionsButton = styleDashboardButton(new JButton("Manage Sections"), "📦");
         maintenanceButton = styleDashboardButton(new JButton("Maintenance: ..."), "⚙️");
         backupButton = styleDashboardButton(new JButton("Backup DB"), "💾");
-        restoreButton = styleDashboardButton(new JButton("Restore DB"), "♻️"); // NEW
+        restoreButton = styleDashboardButton(new JButton("Restore DB"), "♻️");
 
         menuGridPanel.add(manageUsersButton);
         menuGridPanel.add(manageCoursesButton);
         menuGridPanel.add(manageSectionsButton);
         menuGridPanel.add(maintenanceButton);
         menuGridPanel.add(backupButton);
-        menuGridPanel.add(restoreButton); // ADDED
+        menuGridPanel.add(restoreButton);
 
         add(menuGridPanel, BorderLayout.CENTER);
     }
@@ -137,7 +139,7 @@ public class AdminDashboard extends JFrame {
         manageSectionsButton.addActionListener(e -> openSectionManagement());
         maintenanceButton.addActionListener(e -> toggleMaintenanceMode());
         backupButton.addActionListener(e -> performBackup());
-        restoreButton.addActionListener(e -> performRestore()); // ACTION
+        restoreButton.addActionListener(e -> performRestore());
     }
 
     private void openUserManagement() { SwingUtilities.invokeLater(() -> new UserManagementWindow(this).setVisible(true)); }
@@ -177,6 +179,44 @@ public class AdminDashboard extends JFrame {
         }
     }
 
+    // --- Helper to find MySQL executables automatically ---
+    private String getMySQLToolPath(String toolName) {
+        String os = System.getProperty("os.name").toLowerCase();
+        if (!os.contains("win")) return toolName;
+
+        // Check standard paths
+        String[] paths = {
+                "C:\\Program Files\\MySQL\\MySQL Server 8.0\\bin",
+                "C:\\Program Files\\MySQL\\MySQL Server 8.4\\bin",
+                "C:\\Program Files\\MySQL\\MySQL Server 8.1\\bin",
+                "C:\\Program Files\\MySQL\\MySQL Server 8.2\\bin",
+                "C:\\Program Files\\MySQL\\MySQL Server 8.3\\bin",
+                "C:\\Program Files (x86)\\MySQL\\MySQL Server 8.0\\bin"
+        };
+
+        for (String path : paths) {
+            File tool = new File(path, toolName + ".exe");
+            if (tool.exists()) return tool.getAbsolutePath();
+        }
+        return toolName;
+    }
+
+    // --- Helper to ask user for tool location ---
+    private String promptUserForTool(String toolName) {
+        JOptionPane.showMessageDialog(this,
+                "Could not automatically find '" + toolName + "'.\nPlease locate the file manually to proceed.",
+                "Tool Not Found", JOptionPane.WARNING_MESSAGE);
+
+        JFileChooser fc = new JFileChooser();
+        fc.setDialogTitle("Locate " + toolName + (System.getProperty("os.name").toLowerCase().contains("win") ? ".exe" : ""));
+        fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
+
+        if (fc.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
+            return fc.getSelectedFile().getAbsolutePath();
+        }
+        return null;
+    }
+
     private void performBackup() {
         try {
             JFileChooser fileChooser = new JFileChooser();
@@ -185,26 +225,41 @@ public class AdminDashboard extends JFrame {
 
             if (fileChooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
                 File file = fileChooser.getSelectedFile();
-                String dbUser = "root";
-                String dbPass = "root123";
+                String tool = getMySQLToolPath("mysqldump");
 
-                // IMPORTANT: mysqldump must be in system PATH
-                ProcessBuilder pb = new ProcessBuilder(
-                        "mysqldump", "-u" + dbUser, "-p" + dbPass, "--databases", "university_erp", "university_auth", "-r", file.getAbsolutePath()
-                );
-                pb.redirectErrorStream(true);
-                Process p = pb.start();
-                int exitCode = p.waitFor();
-
-                if (exitCode == 0) {
+                try {
+                    runBackupProcess(tool, file);
                     JOptionPane.showMessageDialog(this, "Backup Successful!", "Success", JOptionPane.INFORMATION_MESSAGE);
-                } else {
-                    JOptionPane.showMessageDialog(this, "Backup Failed. Check console.", "Error", JOptionPane.ERROR_MESSAGE);
+                } catch (Exception e) {
+                    // Fallback: Ask user for tool
+                    String manualTool = promptUserForTool("mysqldump");
+                    if (manualTool != null) {
+                        try {
+                            runBackupProcess(manualTool, file);
+                            JOptionPane.showMessageDialog(this, "Backup Successful!", "Success", JOptionPane.INFORMATION_MESSAGE);
+                        } catch (Exception ex) {
+                            JOptionPane.showMessageDialog(this, "Backup Failed: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                        }
+                    } else {
+                        JOptionPane.showMessageDialog(this, "Backup Cancelled.", "Info", JOptionPane.INFORMATION_MESSAGE);
+                    }
                 }
             }
         } catch (Exception e) {
-            JOptionPane.showMessageDialog(this, "Backup failed. Ensure 'mysqldump' is installed.\n" + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Error: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
         }
+    }
+
+    private void runBackupProcess(String tool, File destination) throws Exception {
+        String dbUser = "root";
+        String dbPass = "root123";
+        ProcessBuilder pb = new ProcessBuilder(
+                tool, "-u" + dbUser, "-p" + dbPass, "--databases", "university_erp", "university_auth", "-r", destination.getAbsolutePath()
+        );
+        pb.redirectErrorStream(true);
+        Process p = pb.start();
+        int exitCode = p.waitFor();
+        if (exitCode != 0) throw new Exception("Process exited with code " + exitCode);
     }
 
     private void performRestore() {
@@ -215,32 +270,50 @@ public class AdminDashboard extends JFrame {
 
             if (fileChooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
                 File file = fileChooser.getSelectedFile();
-                String dbUser = "root";
-                String dbPass = "root123";
+                String tool = getMySQLToolPath("mysql");
 
-                // IMPORTANT: mysql must be in system PATH
-                // Using shell execution to handle input redirection <
-                String[] command;
-                if (System.getProperty("os.name").toLowerCase().contains("win")) {
-                    command = new String[]{"cmd.exe", "/c", "mysql -u" + dbUser + " -p" + dbPass + " < \"" + file.getAbsolutePath() + "\""};
-                } else {
-                    command = new String[]{"/bin/sh", "-c", "mysql -u" + dbUser + " -p" + dbPass + " < " + file.getAbsolutePath()};
-                }
-
-                ProcessBuilder pb = new ProcessBuilder(command);
-                pb.redirectErrorStream(true);
-                Process p = pb.start();
-                int exitCode = p.waitFor();
-
-                if (exitCode == 0) {
+                try {
+                    runRestoreProcess(tool, file);
                     JOptionPane.showMessageDialog(this, "Restore Successful!", "Success", JOptionPane.INFORMATION_MESSAGE);
-                } else {
-                    JOptionPane.showMessageDialog(this, "Restore Failed. Check console.", "Error", JOptionPane.ERROR_MESSAGE);
+                } catch (Exception e) {
+                    // Fallback: Ask user for tool
+                    String manualTool = promptUserForTool("mysql");
+                    if (manualTool != null) {
+                        try {
+                            runRestoreProcess(manualTool, file);
+                            JOptionPane.showMessageDialog(this, "Restore Successful!", "Success", JOptionPane.INFORMATION_MESSAGE);
+                        } catch (Exception ex) {
+                            JOptionPane.showMessageDialog(this, "Restore Failed: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                        }
+                    } else {
+                        JOptionPane.showMessageDialog(this, "Restore Cancelled.", "Info", JOptionPane.INFORMATION_MESSAGE);
+                    }
                 }
             }
         } catch (Exception e) {
-            JOptionPane.showMessageDialog(this, "Restore failed. Ensure 'mysql' is installed.\n" + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Error: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
         }
+    }
+
+    private void runRestoreProcess(String tool, File source) throws Exception {
+        String dbUser = "root";
+        String dbPass = "root123";
+        ProcessBuilder pb = new ProcessBuilder(tool, "-u" + dbUser, "-p" + dbPass);
+        pb.redirectErrorStream(true);
+        Process p = pb.start();
+
+        try (OutputStream os = p.getOutputStream();
+             FileInputStream fis = new FileInputStream(source)) {
+            byte[] buffer = new byte[1024];
+            int length;
+            while ((length = fis.read(buffer)) != -1) {
+                os.write(buffer, 0, length);
+            }
+            os.flush();
+        }
+
+        int exitCode = p.waitFor();
+        if (exitCode != 0) throw new Exception("Process exited with code " + exitCode);
     }
 
     private void logout() {
