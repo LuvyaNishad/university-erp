@@ -8,18 +8,17 @@ import edu.univ.erp.service.GradeService;
 import edu.univ.erp.service.InstructorService;
 
 import javax.swing.*;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * A window for instructors to enter and update grades.
- * This passes the tests:
- * - "[ ] Enter scores (quiz/midterm/end-sem) -> saved."
- * - "[ ] Compute final grade using the rule..."
- */
 public class GradebookWindow extends JDialog {
 
     private JComboBox<SectionItem> sectionComboBox;
@@ -29,7 +28,7 @@ public class GradebookWindow extends JDialog {
     private GradeService gradeService;
     private List<Section> sectionList;
     private List<Enrollment> currentEnrollments;
-    private Map<String, List<Grade>> gradeCache; // Caches grades for saving
+    private Map<String, List<Grade>> gradeCache;
 
     public GradebookWindow(JFrame owner) {
         super(owner, "Gradebook", true);
@@ -50,7 +49,6 @@ public class GradebookWindow extends JDialog {
         mainPanel.setBorder(UITheme.BORDER_PADDING_DIALOG);
         mainPanel.setBackground(UITheme.COLOR_BACKGROUND);
 
-        // --- Top Panel (Selector) ---
         JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         topPanel.setBackground(UITheme.COLOR_BACKGROUND);
         JLabel selectLabel = new JLabel("Select a Section:");
@@ -61,26 +59,28 @@ public class GradebookWindow extends JDialog {
         topPanel.add(sectionComboBox);
         mainPanel.add(topPanel, BorderLayout.NORTH);
 
-        // --- Center: Table ---
         String[] columnNames = {"Student ID", "Student Name", "Component", "Score", "Final Grade"};
-        tableModel = new DefaultTableModel(columnNames, 0); // Editable
+        tableModel = new DefaultTableModel(columnNames, 0);
         gradesTable = new JTable(tableModel);
         JScrollPane scrollPane = new JScrollPane(gradesTable);
         UITheme.styleTable(scrollPane);
         mainPanel.add(scrollPane, BorderLayout.CENTER);
 
-        // --- Bottom: Button Panel ---
         JPanel bottomPanel = new JPanel(new BorderLayout());
         bottomPanel.setBackground(UITheme.COLOR_BACKGROUND);
 
+        JButton importButton = new JButton("Import CSV");
+        UITheme.styleSecondaryButton(importButton);
+        importButton.setPreferredSize(new Dimension(120, 40));
+
         JButton saveButton = new JButton("Save All Grades");
         UITheme.stylePrimaryButton(saveButton);
-        saveButton.setPreferredSize(new Dimension(180, 40));
+        saveButton.setPreferredSize(new Dimension(150, 40));
 
         JButton computeFinalButton = new JButton("Compute Final Grades");
         UITheme.stylePrimaryButton(computeFinalButton);
         computeFinalButton.setBackground(UITheme.COLOR_PRIMARY_BLUE);
-        computeFinalButton.setPreferredSize(new Dimension(200, 40));
+        computeFinalButton.setPreferredSize(new Dimension(180, 40));
 
         JButton closeButton = new JButton("Close");
         UITheme.styleSecondaryButton(closeButton);
@@ -88,6 +88,7 @@ public class GradebookWindow extends JDialog {
 
         JPanel buttonContainer = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         buttonContainer.setBackground(UITheme.COLOR_BACKGROUND);
+        buttonContainer.add(importButton);
         buttonContainer.add(computeFinalButton);
         buttonContainer.add(saveButton);
         buttonContainer.add(closeButton);
@@ -95,11 +96,11 @@ public class GradebookWindow extends JDialog {
 
         mainPanel.add(bottomPanel, BorderLayout.SOUTH);
 
-        // --- Action Listeners ---
         closeButton.addActionListener(e -> dispose());
         sectionComboBox.addActionListener(e -> loadGradebook());
         saveButton.addActionListener(e -> saveGrades());
         computeFinalButton.addActionListener(e -> computeFinalGrades());
+        importButton.addActionListener(e -> handleImportCSV());
 
         add(mainPanel);
     }
@@ -131,35 +132,102 @@ public class GradebookWindow extends JDialog {
             String sectionId = selectedItem.section.getSectionId();
             this.currentEnrollments = instructorService.getSectionEnrollments(sectionId, instructorId);
 
-            tableModel.setRowCount(0); // Clear table
-            gradeCache.clear(); // Clear cache
+            tableModel.setRowCount(0);
+            gradeCache.clear();
+
+            String[] requiredComponents = {"Midterm", "Assignment", "Final"};
 
             for (Enrollment en : currentEnrollments) {
                 List<Grade> grades = gradeService.getGradesByEnrollment(en.getEnrollmentId());
-                gradeCache.put(en.getEnrollmentId(), grades); // Cache the grades
+                gradeCache.put(en.getEnrollmentId(), grades);
 
-                if (grades.isEmpty()) {
-                    // Add rows for new grade entry
-                    tableModel.addRow(new Object[]{en.getStudentId(), en.getStudentName(), "Midterm", 0.0, "N/A"});
-                    tableModel.addRow(new Object[]{en.getStudentId(), en.getStudentName(), "Assignment", 0.0, "N/A"});
-                    tableModel.addRow(new Object[]{en.getStudentId(), en.getStudentName(), "Final", 0.0, "N/A"});
-                } else {
-                    for (Grade g : grades) {
+                // FIX: Ensure ALL components are displayed, creating empty rows if data is missing
+                for (String comp : requiredComponents) {
+                    Grade existing = grades.stream()
+                            .filter(g -> g.getComponent().equalsIgnoreCase(comp))
+                            .findFirst().orElse(null);
+
+                    if (existing != null) {
                         tableModel.addRow(new Object[]{
                                 en.getStudentId(),
                                 en.getStudentName(),
-                                g.getComponent(),
-                                g.getScore(),
-                                g.getFinalGrade() != null ? g.getFinalGrade() : "N/A"
+                                existing.getComponent(),
+                                existing.getScore(),
+                                existing.getFinalGrade() != null ? existing.getFinalGrade() : "N/A"
+                        });
+                    } else {
+                        tableModel.addRow(new Object[]{
+                                en.getStudentId(),
+                                en.getStudentName(),
+                                comp,
+                                0.0,
+                                "N/A"
                         });
                     }
                 }
-                // Add separator
                 tableModel.addRow(new Object[]{"---", "---", "---", "---", "---"});
             }
         } catch (Exception e) {
             JOptionPane.showMessageDialog(this, "Error loading gradebook: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
         }
+    }
+
+    private void handleImportCSV() {
+        SectionItem selectedItem = (SectionItem) sectionComboBox.getSelectedItem();
+        if (selectedItem == null || selectedItem.section == null) {
+            JOptionPane.showMessageDialog(this, "Please select a section first.", "Warning", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setDialogTitle("Import Grades CSV");
+        fileChooser.setFileFilter(new FileNameExtensionFilter("CSV Files", "csv"));
+
+        if (fileChooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
+            File file = fileChooser.getSelectedFile();
+            try (BufferedReader br = new BufferedReader(new FileReader(file))) {
+                String line;
+                boolean isHeader = true;
+                int importedCount = 0;
+
+                while ((line = br.readLine()) != null) {
+                    // Remove BOM if present
+                    if (line.startsWith("\uFEFF")) {
+                        line = line.substring(1);
+                    }
+
+                    if (isHeader) { isHeader = false; continue; }
+                    String[] parts = line.split(",");
+                    if (parts.length < 3) continue;
+
+                    String studentId = parts[0].trim().replace("\"", "");
+                    String component = parts[1].trim().replace("\"", "");
+                    double score = Double.parseDouble(parts[2].trim().replace("\"", ""));
+
+                    if (updateTableModel(studentId, component, score)) {
+                        importedCount++;
+                    }
+                }
+                JOptionPane.showMessageDialog(this, "Imported " + importedCount + " grades. Click 'Save' to commit.", "Success", JOptionPane.INFORMATION_MESSAGE);
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(this, "Import Failed: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
+
+    private boolean updateTableModel(String studentId, String component, double score) {
+        boolean updated = false;
+        for (int i = 0; i < tableModel.getRowCount(); i++) {
+            String rowStudentId = (String) tableModel.getValueAt(i, 0);
+            String rowComponent = (String) tableModel.getValueAt(i, 2);
+
+            if (rowStudentId != null && rowStudentId.equalsIgnoreCase(studentId) &&
+                    rowComponent != null && rowComponent.equalsIgnoreCase(component)) {
+                tableModel.setValueAt(score, i, 3); // Update score column
+                updated = true;
+            }
+        }
+        return updated;
     }
 
     private void saveGrades() {
@@ -181,12 +249,10 @@ public class GradebookWindow extends JDialog {
                 Double score = Double.parseDouble(tableModel.getValueAt(i, 3).toString());
                 String finalGrade = (String) tableModel.getValueAt(i, 4);
 
-                // Find the enrollmentId for this student
                 String enrollmentId = currentEnrollments.stream()
                         .filter(en -> en.getStudentId().equals(studentId))
                         .findFirst().get().getEnrollmentId();
 
-                // Check if grade exists
                 List<Grade> existingGrades = gradeCache.get(enrollmentId);
                 Grade existing = existingGrades.stream()
                         .filter(g -> g.getComponent().equalsIgnoreCase(component))
@@ -206,9 +272,10 @@ public class GradebookWindow extends JDialog {
                 }
             }
             JOptionPane.showMessageDialog(this, "Grades saved successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
-            loadGradebook(); // Reload data
+            loadGradebook();
         } catch (Exception e) {
             JOptionPane.showMessageDialog(this, "Error saving grades: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            e.printStackTrace();
         }
     }
 
@@ -218,12 +285,9 @@ public class GradebookWindow extends JDialog {
         try {
             String instructorId = AuthService.getCurrentUserId();
             for (Enrollment en : currentEnrollments) {
-                // Get fresh grades from DB
                 List<Grade> grades = gradeService.getGradesByEnrollment(en.getEnrollmentId());
-                // Compute letter grade
                 String letterGrade = instructorService.computeFinalGrade(grades);
 
-                // Find the "Final" grade component and update it
                 Grade finalGradeEntry = grades.stream()
                         .filter(g -> "final".equalsIgnoreCase(g.getComponent()))
                         .findFirst().orElse(null);
@@ -234,35 +298,28 @@ public class GradebookWindow extends JDialog {
                     finalGradeEntry.setFinalGrade(letterGrade);
                     instructorService.updateGrade(finalGradeEntry, sectionId, instructorId);
                 } else {
-                    // If no "Final" entry, create one to store the final grade
                     Grade newFinalGrade = new Grade();
                     newFinalGrade.setEnrollmentId(en.getEnrollmentId());
                     newFinalGrade.setComponent("Final");
-                    newFinalGrade.setScore(0.0); // Default score, main value is letterGrade
+                    newFinalGrade.setScore(0.0);
                     newFinalGrade.setFinalGrade(letterGrade);
                     instructorService.enterGrade(newFinalGrade, sectionId, instructorId);
                 }
             }
             JOptionPane.showMessageDialog(this, "Final grades computed and saved.", "Success", JOptionPane.INFORMATION_MESSAGE);
-            loadGradebook(); // Refresh to show new letter grades
+            loadGradebook();
         } catch (Exception e) {
-            JOptionPane.showMessageDialog(this, "Error computing grades: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Error: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
 
-    // Helper class
     private static class SectionItem {
         Section section;
         String displayValue;
-
         SectionItem(Section section, String displayValue) {
             this.section = section;
             this.displayValue = displayValue;
         }
-
-        @Override
-        public String toString() {
-            return displayValue;
-        }
+        @Override public String toString() { return displayValue; }
     }
 }

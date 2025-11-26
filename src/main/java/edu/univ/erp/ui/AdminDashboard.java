@@ -4,13 +4,16 @@ import edu.univ.erp.service.AdminService;
 import edu.univ.erp.service.AuthService;
 
 import javax.swing.*;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
+import java.io.File;
 import java.sql.SQLException;
 
 public class AdminDashboard extends JFrame {
     private JButton logoutButton;
-    private JButton changePassButton; // Updated button
+    private JButton changePassButton;
     private JButton backupButton;
+    private JButton restoreButton; // NEW BUTTON
     private JButton maintenanceButton;
     private JButton manageUsersButton;
     private JButton manageCoursesButton;
@@ -36,7 +39,6 @@ public class AdminDashboard extends JFrame {
     }
 
     private void createComponents() {
-        // --- 1. NORTH: Header Panel ---
         JPanel headerPanel = new JPanel(new BorderLayout(20, 0));
         headerPanel.setBackground(UITheme.COLOR_WHITE);
         headerPanel.setBorder(BorderFactory.createCompoundBorder(
@@ -48,7 +50,6 @@ public class AdminDashboard extends JFrame {
         UITheme.styleSubHeaderLabel(titleLabel);
         headerPanel.add(titleLabel, BorderLayout.WEST);
 
-        // User Panel (Icon + Name + Password + Logout)
         JPanel userPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         userPanel.setOpaque(false);
         JLabel userIcon = new JLabel("👤");
@@ -56,11 +57,9 @@ public class AdminDashboard extends JFrame {
         JLabel userLabel = new JLabel(AuthService.getCurrentUsername() + " (Admin)");
         UITheme.styleLabel(userLabel);
 
-        // --- UPDATED BUTTON ---
         changePassButton = new JButton("Change Password");
-        UITheme.stylePrimaryButton(changePassButton); // Now Teal
-        changePassButton.setPreferredSize(new Dimension(150, 35)); // Wider
-        // ---------------------
+        UITheme.stylePrimaryButton(changePassButton);
+        changePassButton.setPreferredSize(new Dimension(150, 35));
 
         logoutButton = new JButton("Logout");
         UITheme.styleSecondaryButton(logoutButton);
@@ -79,7 +78,6 @@ public class AdminDashboard extends JFrame {
         topPanel.add(headerPanel, BorderLayout.CENTER);
         add(topPanel, BorderLayout.NORTH);
 
-        // --- 2. CENTER: Menu Grid Panel ---
         JPanel menuGridPanel = new JPanel(new GridLayout(2, 3, 25, 25));
         menuGridPanel.setBackground(UITheme.COLOR_BACKGROUND);
         menuGridPanel.setBorder(BorderFactory.createEmptyBorder(40, 40, 40, 40));
@@ -89,12 +87,14 @@ public class AdminDashboard extends JFrame {
         manageSectionsButton = styleDashboardButton(new JButton("Manage Sections"), "📦");
         maintenanceButton = styleDashboardButton(new JButton("Maintenance: ..."), "⚙️");
         backupButton = styleDashboardButton(new JButton("Backup DB"), "💾");
+        restoreButton = styleDashboardButton(new JButton("Restore DB"), "♻️"); // NEW
 
         menuGridPanel.add(manageUsersButton);
         menuGridPanel.add(manageCoursesButton);
         menuGridPanel.add(manageSectionsButton);
         menuGridPanel.add(maintenanceButton);
         menuGridPanel.add(backupButton);
+        menuGridPanel.add(restoreButton); // ADDED
 
         add(menuGridPanel, BorderLayout.CENTER);
     }
@@ -137,6 +137,7 @@ public class AdminDashboard extends JFrame {
         manageSectionsButton.addActionListener(e -> openSectionManagement());
         maintenanceButton.addActionListener(e -> toggleMaintenanceMode());
         backupButton.addActionListener(e -> performBackup());
+        restoreButton.addActionListener(e -> performRestore()); // ACTION
     }
 
     private void openUserManagement() { SwingUtilities.invokeLater(() -> new UserManagementWindow(this).setVisible(true)); }
@@ -147,9 +148,10 @@ public class AdminDashboard extends JFrame {
         try {
             boolean currentMode = adminService.isMaintenanceMode();
             adminService.setMaintenanceMode(!currentMode);
-            updateMaintenanceState(); // Just update state, no popup needed for toggle itself to avoid spam, or keep it if you prefer
+            updateMaintenanceState();
+            JOptionPane.showMessageDialog(this, "Maintenance Mode " + (!currentMode ? "Enabled" : "Disabled"), "Success", JOptionPane.INFORMATION_MESSAGE);
         } catch (SQLException ex) {
-            JOptionPane.showMessageDialog(this, "Error: " + ex.getMessage());
+            JOptionPane.showMessageDialog(this, "Error: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -177,18 +179,67 @@ public class AdminDashboard extends JFrame {
 
     private void performBackup() {
         try {
-            String dbName = "university_erp";
-            String dbUser = "root";
-            String dbPass = "root123";
-            String savePath = "backup_" + System.currentTimeMillis() + ".sql";
+            JFileChooser fileChooser = new JFileChooser();
+            fileChooser.setDialogTitle("Save Backup SQL");
+            fileChooser.setSelectedFile(new File("university_erp_backup_" + System.currentTimeMillis() + ".sql"));
 
-            ProcessBuilder pb = new ProcessBuilder(
-                    "mysqldump", "-u" + dbUser, "-p" + dbPass, dbName, "-r", savePath
-            );
-            pb.start().waitFor();
-            JOptionPane.showMessageDialog(this, "Backup saved to: " + savePath, "Backup Successful", JOptionPane.INFORMATION_MESSAGE);
+            if (fileChooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
+                File file = fileChooser.getSelectedFile();
+                String dbUser = "root";
+                String dbPass = "root123";
+
+                // IMPORTANT: mysqldump must be in system PATH
+                ProcessBuilder pb = new ProcessBuilder(
+                        "mysqldump", "-u" + dbUser, "-p" + dbPass, "--databases", "university_erp", "university_auth", "-r", file.getAbsolutePath()
+                );
+                pb.redirectErrorStream(true);
+                Process p = pb.start();
+                int exitCode = p.waitFor();
+
+                if (exitCode == 0) {
+                    JOptionPane.showMessageDialog(this, "Backup Successful!", "Success", JOptionPane.INFORMATION_MESSAGE);
+                } else {
+                    JOptionPane.showMessageDialog(this, "Backup Failed. Check console.", "Error", JOptionPane.ERROR_MESSAGE);
+                }
+            }
         } catch (Exception e) {
             JOptionPane.showMessageDialog(this, "Backup failed. Ensure 'mysqldump' is installed.\n" + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void performRestore() {
+        try {
+            JFileChooser fileChooser = new JFileChooser();
+            fileChooser.setDialogTitle("Select SQL Backup to Restore");
+            fileChooser.setFileFilter(new FileNameExtensionFilter("SQL Files", "sql"));
+
+            if (fileChooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
+                File file = fileChooser.getSelectedFile();
+                String dbUser = "root";
+                String dbPass = "root123";
+
+                // IMPORTANT: mysql must be in system PATH
+                // Using shell execution to handle input redirection <
+                String[] command;
+                if (System.getProperty("os.name").toLowerCase().contains("win")) {
+                    command = new String[]{"cmd.exe", "/c", "mysql -u" + dbUser + " -p" + dbPass + " < \"" + file.getAbsolutePath() + "\""};
+                } else {
+                    command = new String[]{"/bin/sh", "-c", "mysql -u" + dbUser + " -p" + dbPass + " < " + file.getAbsolutePath()};
+                }
+
+                ProcessBuilder pb = new ProcessBuilder(command);
+                pb.redirectErrorStream(true);
+                Process p = pb.start();
+                int exitCode = p.waitFor();
+
+                if (exitCode == 0) {
+                    JOptionPane.showMessageDialog(this, "Restore Successful!", "Success", JOptionPane.INFORMATION_MESSAGE);
+                } else {
+                    JOptionPane.showMessageDialog(this, "Restore Failed. Check console.", "Error", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Restore failed. Ensure 'mysql' is installed.\n" + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
 

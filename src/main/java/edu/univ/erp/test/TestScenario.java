@@ -24,11 +24,13 @@ public class TestScenario {
 
         // 2. Test Login (Student)
         System.out.print("TEST 2: Student Login (stu1)... ");
-        boolean loginSuccess = AuthService.login("stu1", "student123");
-        if (loginSuccess) {
+        // UPDATED: AuthService.login returns a String now, not boolean
+        String loginStatus = AuthService.login("stu1", "student123");
+
+        if ("SUCCESS".equals(loginStatus)) {
             System.out.println("✅ PASS");
         } else {
-            System.out.println("❌ FAIL");
+            System.out.println("❌ FAIL (Status: " + loginStatus + ")");
         }
 
         // 3. Test Fetch Sections

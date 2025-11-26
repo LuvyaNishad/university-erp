@@ -4,6 +4,7 @@ import edu.univ.erp.domain.Grade;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 public class GradeDAO {
 
@@ -31,7 +32,8 @@ public class GradeDAO {
         String sql = "INSERT INTO grades (grade_id, enrollment_id, component, score, final_grade) VALUES (?, ?, ?, ?, ?)";
         try (Connection conn = DatabaseConnection.getErpConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
-            String gradeId = "GRD_" + System.currentTimeMillis();
+            // FIX: Use UUID to prevent ID collision during bulk save loop
+            String gradeId = "GRD_" + UUID.randomUUID().toString();
             stmt.setString(1, gradeId);
             stmt.setString(2, grade.getEnrollmentId());
             stmt.setString(3, grade.getComponent());

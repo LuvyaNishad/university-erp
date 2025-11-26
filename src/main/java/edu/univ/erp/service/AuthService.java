@@ -7,68 +7,41 @@ import java.sql.SQLException;
 
 public class AuthService {
 
-    public static boolean login(String username, String password) {
-        System.out.println("🚀 AUTH SERVICE: Login attempt for: " + username);
-
+    public static String login(String username, String password) {
+        System.out.println("🚀 AUTH: Login " + username);
         try {
-            // ONLY try database authentication. No fallbacks.
-            String[] authResult = AuthDAO.verifyLogin(username, password);
+            String[] result = AuthDAO.verifyLogin(username, password);
+            if (result == null) return "FAILED";
 
-            if (authResult != null) {
-                String userId = authResult[0];
-                String userUsername = authResult[1];
-                String role = authResult[2];
+            String status = result[0];
+            if ("LOCKED".equals(status)) return "LOCKED";
+            if ("INVALID".equals(status)) return "FAILED";
 
-                AuthDAO.updateLastLogin(userId);
-                SessionManager.getInstance().login(userId, userUsername, role);
-
-                System.out.println("🎉 AUTH SERVICE: Login COMPLETE for " + username);
-                return true;
-            } else {
-                System.out.println("❌ AUTH SERVICE: Login failed (Invalid credentials).");
-                return false;
+            if ("SUCCESS".equals(status)) {
+                AuthDAO.updateLastLogin(result[1]);
+                SessionManager.getInstance().login(result[1], result[2], result[3]);
+                return "SUCCESS";
             }
-
+            return "FAILED";
         } catch (Exception e) {
-            System.out.println("💥 AUTH SERVICE: Database error: " + e.getMessage());
             e.printStackTrace();
-            return false;
+            return "ERROR";
         }
     }
 
-    /**
-     * Changes the current user's password.
-     */
-    public static boolean changePassword(String oldPassword, String newPassword) {
-        String userId = SessionManager.getInstance().getCurrentUserId();
-        if (userId == null) return false;
-
+    public static boolean changePassword(String oldPass, String newPass) {
+        String uid = SessionManager.getInstance().getCurrentUserId();
+        if (uid == null) return false;
         try {
-            // 1. Get current hash from DB
-            String currentHash = AuthDAO.getPasswordHash(userId);
-            if (currentHash == null) return false;
-
-            // 2. Verify old password
-            if (!PasswordUtil.checkPassword(oldPassword, currentHash)) {
-                return false;
+            String hash = AuthDAO.getPasswordHash(uid);
+            if (hash != null && PasswordUtil.checkPassword(oldPass, hash)) {
+                return AuthDAO.updatePassword(uid, PasswordUtil.hashPassword(newPass));
             }
-
-            // 3. Hash new password
-            String newHash = PasswordUtil.hashPassword(newPassword);
-
-            // 4. Update DB
-            return AuthDAO.updatePassword(userId, newHash);
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-            return false;
-        }
+        } catch (SQLException e) { e.printStackTrace(); }
+        return false;
     }
 
-    public static void logout() {
-        SessionManager.getInstance().logout();
-    }
-
+    public static void logout() { SessionManager.getInstance().logout(); }
     public static String getCurrentUserRole() { return SessionManager.getInstance().getCurrentUserRole(); }
     public static String getCurrentUserId() { return SessionManager.getInstance().getCurrentUserId(); }
     public static String getCurrentUsername() { return SessionManager.getInstance().getCurrentUsername(); }

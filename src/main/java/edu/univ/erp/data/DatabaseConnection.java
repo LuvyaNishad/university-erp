@@ -1,5 +1,6 @@
 package edu.univ.erp.data;
 
+import edu.univ.erp.auth.PasswordUtil;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -12,7 +13,7 @@ public class DatabaseConnection {
     private static final String AUTH_DB_URL = "jdbc:mysql://" + HOST + ":" + PORT + "/university_auth";
     private static final String ERP_DB_URL = "jdbc:mysql://" + HOST + ":" + PORT + "/university_erp";
     private static final String DB_USER = "root";
-    private static final String DB_PASSWORD = "root123"; // Make sure this matches your MySQL password
+    private static final String DB_PASSWORD = "root123"; // Ensure this matches your MySQL password
 
     static {
         initializeDatabase();
@@ -38,59 +39,70 @@ public class DatabaseConnection {
 
     private static void initializeDatabase() {
         createDatabases();
-        createTablesAndData();
+        // FORCE RESET: Drops and recreates tables to ensure schema/passwords are correct
+        resetTablesAndData();
     }
 
     private static void createDatabases() {
         String baseUrl = "jdbc:mysql://" + HOST + ":" + PORT + "/";
-
         try (Connection conn = DriverManager.getConnection(baseUrl, DB_USER, DB_PASSWORD);
              Statement stmt = conn.createStatement()) {
-
             System.out.println("🚀 Checking databases...");
             stmt.execute("CREATE DATABASE IF NOT EXISTS university_auth");
             stmt.execute("CREATE DATABASE IF NOT EXISTS university_erp");
-
         } catch (SQLException e) {
             System.err.println("❌ Database creation failed: " + e.getMessage());
         }
     }
 
-    private static void createTablesAndData() {
+    private static void resetTablesAndData() {
         try (Connection conn = getErpConnection();
              Statement stmt = conn.createStatement()) {
 
-            System.out.println("📦 Verifying tables...");
+            System.out.println("📦 Resetting database schema and data...");
 
-            // Create Auth DB tables
+            // 1. Drop Old Tables (To fix schema/hash issues)
+            stmt.execute("USE university_erp");
+            stmt.execute("DROP TABLE IF EXISTS grades");
+            stmt.execute("DROP TABLE IF EXISTS enrollments");
+            stmt.execute("DROP TABLE IF EXISTS sections");
+            stmt.execute("DROP TABLE IF EXISTS courses");
+            stmt.execute("DROP TABLE IF EXISTS instructors");
+            stmt.execute("DROP TABLE IF EXISTS students");
+            stmt.execute("DROP TABLE IF EXISTS settings");
+
             stmt.execute("USE university_auth");
-            stmt.execute("CREATE TABLE IF NOT EXISTS users_auth (" +
+            stmt.execute("DROP TABLE IF EXISTS users_auth");
+
+            // 2. Create Auth DB Tables (With failed_attempts)
+            stmt.execute("CREATE TABLE users_auth (" +
                     "user_id VARCHAR(50) PRIMARY KEY, " +
                     "username VARCHAR(100) UNIQUE NOT NULL, " +
                     "role VARCHAR(20) NOT NULL, " +
                     "password_hash VARCHAR(255) NOT NULL, " +
                     "status VARCHAR(20) DEFAULT 'active', " +
+                    "failed_attempts INT DEFAULT 0, " +
                     "last_login TIMESTAMP NULL)");
 
-            // Create ERP DB tables
+            // 3. Create ERP DB Tables
             stmt.execute("USE university_erp");
-            stmt.execute("CREATE TABLE IF NOT EXISTS students (" +
+            stmt.execute("CREATE TABLE students (" +
                     "user_id VARCHAR(50) PRIMARY KEY, " +
                     "roll_no VARCHAR(20) UNIQUE NOT NULL, " +
                     "program VARCHAR(100), " +
                     "year INT)");
 
-            stmt.execute("CREATE TABLE IF NOT EXISTS instructors (" +
+            stmt.execute("CREATE TABLE instructors (" +
                     "user_id VARCHAR(50) PRIMARY KEY, " +
                     "department VARCHAR(100))");
 
-            stmt.execute("CREATE TABLE IF NOT EXISTS courses (" +
+            stmt.execute("CREATE TABLE courses (" +
                     "course_id VARCHAR(50) PRIMARY KEY, " +
                     "code VARCHAR(20) UNIQUE NOT NULL, " +
                     "title VARCHAR(200) NOT NULL, " +
                     "credits INT NOT NULL)");
 
-            stmt.execute("CREATE TABLE IF NOT EXISTS sections (" +
+            stmt.execute("CREATE TABLE sections (" +
                     "section_id VARCHAR(50) PRIMARY KEY, " +
                     "course_id VARCHAR(50), " +
                     "instructor_id VARCHAR(50), " +
@@ -100,125 +112,79 @@ public class DatabaseConnection {
                     "semester VARCHAR(50), " +
                     "year INT)");
 
-            stmt.execute("CREATE TABLE IF NOT EXISTS enrollments (" +
+            stmt.execute("CREATE TABLE enrollments (" +
                     "enrollment_id VARCHAR(50) PRIMARY KEY, " +
                     "student_id VARCHAR(50), " +
                     "section_id VARCHAR(50), " +
                     "status VARCHAR(20) DEFAULT 'registered')");
 
-            stmt.execute("CREATE TABLE IF NOT EXISTS grades (" +
+            stmt.execute("CREATE TABLE grades (" +
                     "grade_id VARCHAR(50) PRIMARY KEY, " +
                     "enrollment_id VARCHAR(50), " +
                     "component VARCHAR(100), " +
                     "score DECIMAL(5,2), " +
                     "final_grade VARCHAR(2))");
 
-            stmt.execute("CREATE TABLE IF NOT EXISTS settings (" +
+            stmt.execute("CREATE TABLE settings (" +
                     "setting_key VARCHAR(100) PRIMARY KEY, " +
                     "setting_value VARCHAR(500))");
 
-            // --- NEW LOGIC: Only insert sample data if the database is EMPTY ---
-            boolean dataExists = false;
-            try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM university_auth.users_auth")) {
-                if (rs.next() && rs.getInt(1) > 0) {
-                    dataExists = true;
-                }
-            }
-
-            if (!dataExists) {
-                System.out.println("⚠️ Database appears empty. Inserting sample data...");
-                insertSampleData();
-            } else {
-                System.out.println("✅ Existing data found. Skipping sample data insertion.");
-            }
+            // 4. Insert Fresh Data
+            insertSampleData();
 
         } catch (SQLException e) {
-            System.err.println("❌ Table creation failed: " + e.getMessage());
+            System.err.println("❌ Database reset failed: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
-    /**
-     * This method clears all tables and re-inserts defaults.
-     * Now it is only called if the DB is empty, or if manually run via main().
-     */
     private static void insertSampleData() {
         try {
-            // Insert into Auth DB
+            // Generate hashes dynamically
+            String adminHash = PasswordUtil.hashPassword("admin123");
+            String studentHash = PasswordUtil.hashPassword("student123");
+            String instructorHash = PasswordUtil.hashPassword("instructor123");
+
             try (Connection authConn = getAuthConnection();
                  Statement authStmt = authConn.createStatement()) {
 
-                // Clear existing data
-                authStmt.execute("DELETE FROM users_auth");
-
-                // Insert defaults
-                authStmt.execute("INSERT INTO users_auth (user_id, username, role, password_hash) VALUES " +
-                        "('admin1', 'admin1', 'admin', '$2a$10$jOE.4.rG3UqQe1vQszmWUOVfxMQhdROJAxLw42q2ZtuSa72ue02.O'), " +
-                        "('stu1', 'stu1', 'student', '$2a$10$ngaHhz716f5IKnRvDe8B0elogj5rqTU1SxLQyfYisqkvjvps1VnmC'), " +
-                        "('stu2', 'stu2', 'student', '$2a$10$obITtpGvaLOueUzNRQGzFOXaljtNV3u0OJFWiXE1eGL5mt.lLF4PS'), " +
-                        "('inst1', 'inst1', 'instructor', '$2a$10$obITtpGvaLOueUzNRQGzFOXaljtNV3u0OJFWiXE1eGL5mt.lLF4PS')");
-
-                System.out.println("✅ Auth data inserted");
+                String sql = "INSERT INTO users_auth (user_id, username, role, password_hash) VALUES " +
+                        "('admin1', 'admin1', 'admin', '" + adminHash + "'), " +
+                        "('stu1', 'stu1', 'student', '" + studentHash + "'), " +
+                        "('stu2', 'stu2', 'student', '" + studentHash + "'), " +
+                        "('inst1', 'inst1', 'instructor', '" + instructorHash + "')";
+                authStmt.execute(sql);
+                System.out.println("✅ Auth data inserted (Passwords: admin123, student123, instructor123)");
             }
 
-            // Insert into ERP DB
             try (Connection erpConn = getErpConnection();
                  Statement erpStmt = erpConn.createStatement()) {
 
-                // Clear existing data (Order matters for foreign keys)
-                erpStmt.execute("DELETE FROM grades");
-                erpStmt.execute("DELETE FROM enrollments");
-                erpStmt.execute("DELETE FROM sections");
-                erpStmt.execute("DELETE FROM students");
-                erpStmt.execute("DELETE FROM instructors");
-                erpStmt.execute("DELETE FROM courses");
-                erpStmt.execute("DELETE FROM settings");
-
-                // Insert defaults
-                erpStmt.execute("INSERT INTO students (user_id, roll_no, program, year) VALUES " +
-                        "('stu1', '2023001', 'Computer Science', 2023), " +
-                        "('stu2', '2023002', 'Computer Science', 2023)");
-
-                erpStmt.execute("INSERT INTO instructors (user_id, department) VALUES " +
-                        "('inst1', 'Computer Science')");
-
-                erpStmt.execute("INSERT INTO courses (course_id, code, title, credits) VALUES " +
-                        "('CS101', 'CS101', 'Introduction to Programming', 4), " +
-                        "('CS201', 'CS201', 'Data Structures', 4)");
-
-                erpStmt.execute("INSERT INTO sections (section_id, course_id, instructor_id, day_time, room, capacity, semester, year) VALUES " +
-                        "('SEC001', 'CS101', 'inst1', 'Mon Wed 10:00-11:30', 'Room 101', 30, 'Fall', 2024), " +
-                        "('SEC002', 'CS201', 'inst1', 'Tue Thu 14:00-15:30', 'Room 102', 25, 'Fall', 2024)");
-
-                erpStmt.execute("INSERT INTO enrollments (enrollment_id, student_id, section_id, status) VALUES " +
-                        "('ENR001', 'stu1', 'SEC001', 'registered'), " +
-                        "('ENR002', 'stu2', 'SEC001', 'registered')");
-
-                erpStmt.execute("INSERT INTO settings (setting_key, setting_value) VALUES ('maintenance_on', 'false')");
+                erpStmt.execute("INSERT INTO students VALUES ('stu1', '2023001', 'CS', 2023), ('stu2', '2023002', 'CS', 2023)");
+                erpStmt.execute("INSERT INTO instructors VALUES ('inst1', 'CS')");
+                erpStmt.execute("INSERT INTO courses VALUES ('CS101', 'CS101', 'Intro to Prog', 4), ('CS201', 'CS201', 'Data Structures', 4)");
+                erpStmt.execute("INSERT INTO sections VALUES ('SEC001', 'CS101', 'inst1', 'MW 10am', 'R101', 30, 'Fall', 2024), ('SEC002', 'CS201', 'inst1', 'TH 2pm', 'R102', 25, 'Fall', 2024)");
+                erpStmt.execute("INSERT INTO enrollments VALUES ('ENR001', 'stu1', 'SEC001', 'registered'), ('ENR002', 'stu2', 'SEC001', 'registered')");
+                erpStmt.execute("INSERT INTO settings VALUES ('maintenance_on', 'false')");
 
                 System.out.println("✅ ERP data inserted");
             }
-
         } catch (SQLException e) {
-            System.err.println("❌ Sample data insertion failed: " + e.getMessage());
             e.printStackTrace();
         }
     }
 
     public static boolean testConnections() {
-        try (Connection authConn = getAuthConnection();
-             Connection erpConn = getErpConnection()) {
-            System.out.println("✅ MySQL Database Connections: SUCCESS");
+        try (Connection c1 = getAuthConnection(); Connection c2 = getErpConnection()) {
             return true;
         } catch (SQLException e) {
-            System.out.println("❌ MySQL Connection Failed: " + e.getMessage());
             return false;
         }
     }
 
-    // Run this file MANUALLY if you want to force a reset of the database
     public static void main(String[] args) {
-        System.out.println("⚠️ FORCE RESETTING DATABASE...");
-        insertSampleData();
-        System.out.println("✅ Database has been reset to defaults.");
+        System.out.println("⚠️ Manually starting database initialization...");
+        initializeDatabase();
+        System.out.println("✅ Database reset complete.");
     }
 }
