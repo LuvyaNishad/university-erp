@@ -61,7 +61,7 @@ public class DatabaseConnection {
 
             System.out.println("📦 Resetting database schema and data...");
 
-            // 1. Drop Old Tables (To fix schema/hash issues)
+            // 1. Drop Old Tables
             stmt.execute("USE university_erp");
             stmt.execute("DROP TABLE IF EXISTS grades");
             stmt.execute("DROP TABLE IF EXISTS enrollments");
@@ -74,7 +74,7 @@ public class DatabaseConnection {
             stmt.execute("USE university_auth");
             stmt.execute("DROP TABLE IF EXISTS users_auth");
 
-            // 2. Create Auth DB Tables (With failed_attempts)
+            // 2. Create Auth DB Tables
             stmt.execute("CREATE TABLE users_auth (" +
                     "user_id VARCHAR(50) PRIMARY KEY, " +
                     "username VARCHAR(100) UNIQUE NOT NULL, " +
@@ -152,7 +152,9 @@ public class DatabaseConnection {
                         "('admin1', 'admin1', 'admin', '" + adminHash + "'), " +
                         "('stu1', 'stu1', 'student', '" + studentHash + "'), " +
                         "('stu2', 'stu2', 'student', '" + studentHash + "'), " +
-                        "('inst1', 'inst1', 'instructor', '" + instructorHash + "')";
+                        "('stu3', 'stu3', 'student', '" + studentHash + "'), " +
+                        "('inst1', 'inst1', 'instructor', '" + instructorHash + "'), " +
+                        "('inst2', 'inst2', 'instructor', '" + instructorHash + "')";
                 authStmt.execute(sql);
                 System.out.println("✅ Auth data inserted (Passwords: admin123, student123, instructor123)");
             }
@@ -160,14 +162,43 @@ public class DatabaseConnection {
             try (Connection erpConn = getErpConnection();
                  Statement erpStmt = erpConn.createStatement()) {
 
-                erpStmt.execute("INSERT INTO students VALUES ('stu1', '2023001', 'CS', 2023), ('stu2', '2023002', 'CS', 2023)");
-                erpStmt.execute("INSERT INTO instructors VALUES ('inst1', 'CS')");
-                erpStmt.execute("INSERT INTO courses VALUES ('CS101', 'CS101', 'Intro to Prog', 4), ('CS201', 'CS201', 'Data Structures', 4)");
-                erpStmt.execute("INSERT INTO sections VALUES ('SEC001', 'CS101', 'inst1', 'MW 10am', 'R101', 30, 'Fall', 2024), ('SEC002', 'CS201', 'inst1', 'TH 2pm', 'R102', 25, 'Fall', 2024)");
-                erpStmt.execute("INSERT INTO enrollments VALUES ('ENR001', 'stu1', 'SEC001', 'registered'), ('ENR002', 'stu2', 'SEC001', 'registered')");
+                // IIIT-Delhi Students
+                erpStmt.execute("INSERT INTO students VALUES " +
+                        "('stu1', '2023001', 'B.Tech CSE', 2023), " +
+                        "('stu2', '2023045', 'B.Tech CSD', 2023), " +
+                        "('stu3', '2023102', 'B.Tech CSB', 2023)");
+
+                // IIIT-Delhi Instructors
+                erpStmt.execute("INSERT INTO instructors VALUES " +
+                        "('inst1', 'CSE'), " +
+                        "('inst2', 'ECE')");
+
+                // IIIT-Delhi Courses
+                erpStmt.execute("INSERT INTO courses VALUES " +
+                        "('CSE101', 'CSE101', 'Introduction to Programming', 4), " +
+                        "('CSE102', 'CSE102', 'Data Structures and Algorithms', 4), " +
+                        "('CSE201', 'CSE201', 'Advanced Programming', 4), " +
+                        "('ECE111', 'ECE111', 'Digital Circuits', 4), " +
+                        "('MTH100', 'MTH100', 'Linear Algebra', 4), " +
+                        "('DES101', 'DES101', 'Introduction to Design', 4), " +
+                        "('COM101', 'COM101', 'Communication Skills', 4)");
+
+                // IIIT-Delhi Sections (Monsoon Semester)
+                erpStmt.execute("INSERT INTO sections VALUES " +
+                        "('SEC_IP_01', 'CSE101', 'inst1', 'Mon Wed 10:00-11:30', 'C01', 60, 'Monsoon', 2024), " +
+                        "('SEC_AP_01', 'CSE201', 'inst1', 'Tue Thu 14:00-15:30', 'C02', 55, 'Monsoon', 2024), " +
+                        "('SEC_DC_01', 'ECE111', 'inst2', 'Mon Wed 11:30-13:00', 'C11', 50, 'Monsoon', 2024)");
+
+                // Enrollments
+                erpStmt.execute("INSERT INTO enrollments VALUES " +
+                        "('ENR001', 'stu1', 'SEC_IP_01', 'registered'), " +
+                        "('ENR002', 'stu2', 'SEC_IP_01', 'registered'), " +
+                        "('ENR003', 'stu1', 'SEC_AP_01', 'registered')");
+
+                // Settings
                 erpStmt.execute("INSERT INTO settings VALUES ('maintenance_on', 'false')");
 
-                System.out.println("✅ ERP data inserted");
+                System.out.println("✅ ERP data inserted (IIIT-Delhi configuration)");
             }
         } catch (SQLException e) {
             e.printStackTrace();

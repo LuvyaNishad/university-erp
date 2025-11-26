@@ -10,7 +10,7 @@ public class LoginWindow extends JFrame {
     private JButton loginButton;
 
     public LoginWindow() {
-        setTitle("University ERP - Login");
+        setTitle("IIIT-Delhi ERP - Login");
         setSize(800, 500);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
@@ -25,8 +25,9 @@ public class LoginWindow extends JFrame {
         left.setBackground(UITheme.COLOR_PRIMARY_TEAL);
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(10,10,10,10);
-        JLabel logo = new JLabel("ERP");
-        logo.setFont(new Font("Segoe UI", Font.BOLD, 120));
+
+        JLabel logo = new JLabel("IIIT-D"); // Updated Logo Text
+        logo.setFont(new Font("Segoe UI", Font.BOLD, 80));
         logo.setForeground(Color.WHITE);
         left.add(logo, gbc);
         add(left);
@@ -36,7 +37,7 @@ public class LoginWindow extends JFrame {
         GridBagConstraints gbc2 = new GridBagConstraints();
         gbc2.insets = new Insets(5,5,5,5); gbc2.gridx=0; gbc2.gridy=0; gbc2.fill=GridBagConstraints.HORIZONTAL;
 
-        JLabel title = new JLabel("Welcome Back");
+        JLabel title = new JLabel("Welcome");
         UITheme.styleHeaderLabel(title);
         right.add(title, gbc2);
 

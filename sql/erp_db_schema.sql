@@ -1,4 +1,4 @@
--- ERP DB (PDF Page 4 - exact table structure)
+-- ERP DB for IIIT-Delhi
 CREATE DATABASE IF NOT EXISTS university_erp;
 USE university_erp;
 
@@ -68,18 +68,30 @@ CREATE TABLE settings (
 -- Insert default settings
 INSERT INTO settings (setting_key, setting_value) VALUES ('maintenance_on', 'false');
 
--- Sample ERP data (PDF Page 8)
+-- Sample Data for IIIT-Delhi
+-- Students (Roll numbers follow IIIT-D format YYYYXXX)
 INSERT INTO students (user_id, roll_no, program, year) VALUES
-('stu1', '2023001', 'Computer Science', 2023),
-('stu2', '2023002', 'Computer Science', 2023);
+('stu1', '2023001', 'B.Tech CSE', 2023),
+('stu2', '2023045', 'B.Tech CSD', 2023),
+('stu3', '2023102', 'B.Tech CSB', 2023);
 
+-- Instructors (Departments: CSE, ECE, CB, HCD, Math, SSH)
 INSERT INTO instructors (user_id, department) VALUES
-('inst1', 'Computer Science');
+('inst1', 'CSE'),
+('inst2', 'ECE');
 
+-- Courses (Real IIIT-D Course Codes)
 INSERT INTO courses (course_id, code, title, credits) VALUES
-('CS101', 'CS101', 'Introduction to Programming', 4),
-('CS201', 'CS201', 'Data Structures', 4);
+('CSE101', 'CSE101', 'Introduction to Programming', 4),
+('CSE102', 'CSE102', 'Data Structures and Algorithms', 4),
+('CSE201', 'CSE201', 'Advanced Programming', 4),
+('ECE111', 'ECE111', 'Digital Circuits', 4),
+('MTH100', 'MTH100', 'Linear Algebra', 4),
+('DES101', 'DES101', 'Introduction to Design', 4),
+('COM101', 'COM101', 'Communication Skills', 4);
 
+-- Sections (Semester: Monsoon/Winter)
 INSERT INTO sections (section_id, course_id, instructor_id, day_time, room, capacity, semester, year) VALUES
-('SEC001', 'CS101', 'inst1', 'Mon Wed 10:00-11:30', 'Room 101', 30, 'Fall', 2024),
-('SEC002', 'CS201', 'inst1', 'Tue Thu 14:00-15:30', 'Room 102', 25, 'Fall', 2024);
+('SEC_IP_01', 'CSE101', 'inst1', 'Mon Wed 10:00-11:30', 'C01', 60, 'Monsoon', 2024),
+('SEC_AP_01', 'CSE201', 'inst1', 'Tue Thu 14:00-15:30', 'C02', 55, 'Monsoon', 2024),
+('SEC_DC_01', 'ECE111', 'inst2', 'Mon Wed 11:30-13:00', 'C11', 50, 'Monsoon', 2024);

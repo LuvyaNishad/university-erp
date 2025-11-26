@@ -32,7 +32,7 @@ public class AdminDashboard extends JFrame {
     }
 
     private void setupWindow() {
-        setTitle("Admin Dashboard - University ERP");
+        setTitle("Admin Dashboard - IIIT-Delhi ERP");
         setSize(1000, 700);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
@@ -48,7 +48,7 @@ public class AdminDashboard extends JFrame {
                 BorderFactory.createEmptyBorder(10, 20, 10, 20)
         ));
 
-        JLabel titleLabel = new JLabel("Administrator Dashboard");
+        JLabel titleLabel = new JLabel("IIIT-Delhi Administration");
         UITheme.styleSubHeaderLabel(titleLabel);
         headerPanel.add(titleLabel, BorderLayout.WEST);
 

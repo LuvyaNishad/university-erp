@@ -5,19 +5,12 @@ import javax.swing.border.Border;
 import java.awt.*;
 
 /**
- * A central utility class to manage the IIIT Delhi UI theme,
- * including colors and fonts, for the ERP application.
- * * Colors are from the provided palette:
- * - Teal: #3FADA8
- * - Darkest Gray: #333333
- * - Dark Gray: #4D4D4D
- * - Medium Gray: #666666
- * - Light Gray: #808080
- * * Fonts are Segoe UI (primary) or Geneva (fallback).
+ * A central utility class to manage the IIIT Delhi UI theme.
  */
 public class UITheme {
 
     // --- IIITD Color Palette ---
+    // #3FADA8 is the official IIIT-Delhi "Keppel" Teal color
     public static final Color COLOR_PRIMARY_TEAL = new Color(63, 173, 168);
     public static final Color COLOR_GRAY_DARKEST = new Color(51, 51, 51);
     public static final Color COLOR_GRAY_DARK = new Color(77, 77, 77);
@@ -41,9 +34,7 @@ public class UITheme {
     public static final Color COLOR_PRIMARY_YELLOW = new Color(218, 165, 32);
     public static final Color COLOR_PRIMARY_PURPLE = new Color(148, 0, 211);
 
-
     // --- Fonts ---
-    // Use Segoe UI as the primary font, falling back to Geneva or system default
     private static final String FONT_NAME = "Segoe UI";
     public static final Font FONT_HEADER = new Font(FONT_NAME, Font.BOLD, 24);
     public static final Font FONT_SUB_HEADER = new Font(FONT_NAME, Font.BOLD, 18);
@@ -56,15 +47,8 @@ public class UITheme {
     public static final Border BORDER_PADDING_DIALOG = BorderFactory.createEmptyBorder(15, 15, 15, 15);
     public static final Border BORDER_TEXT_PADDING = BorderFactory.createEmptyBorder(10, 10, 10, 10);
     public static final Border BORDER_TEXT_LINE = BorderFactory.createLineBorder(new Color(200, 200, 200));
-
-    // --- ADD THIS LINE TO FIX THE ERROR ---
     public static final Border BORDER_TABLE = BorderFactory.createLineBorder(new Color(200, 200, 200));
 
-
-    /**
-     * Applies the primary action button style (IIITD Teal).
-     * @param button The JButton to style.
-     */
     public static void stylePrimaryButton(JButton button) {
         button.setBackground(COLOR_PRIMARY_TEAL);
         button.setForeground(COLOR_WHITE);
@@ -75,10 +59,6 @@ public class UITheme {
         button.setCursor(new Cursor(Cursor.HAND_CURSOR));
     }
 
-    /**
-     * Applies a secondary button style (e.g., for "Logout", "Close").
-     * @param button The JButton to style.
-     */
     public static void styleSecondaryButton(JButton button) {
         button.setBackground(COLOR_GRAY_MEDIUM);
         button.setForeground(COLOR_WHITE);
@@ -89,49 +69,31 @@ public class UITheme {
         button.setCursor(new Cursor(Cursor.HAND_CURSOR));
     }
 
-    /**
-     * Styles a main dashboard button (e.g., "Course Catalog").
-     */
     public static void styleDashboardButton(JButton button, Color backgroundColor) {
         button.setBackground(backgroundColor);
         button.setForeground(COLOR_TEXT_WHITE);
-        button.setFont(new Font(FONT_NAME, Font.BOLD, 16)); // Slightly larger font
+        button.setFont(new Font(FONT_NAME, Font.BOLD, 16));
         button.setPreferredSize(new Dimension(200, 100));
         button.setFocusPainted(false);
         button.setCursor(new Cursor(Cursor.HAND_CURSOR));
         button.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
     }
 
-    /**
-     * Styles a main window header label (e.g., "University ERP System").
-     * @param label The JLabel to style.
-     */
     public static void styleHeaderLabel(JLabel label) {
         label.setFont(FONT_HEADER);
         label.setForeground(COLOR_PRIMARY_TEAL);
     }
 
-    /**
-     * Styles a sub-header label (e.g., "My Enrolled Courses").
-     * @param label The JLabel to style.
-     */
     public static void styleSubHeaderLabel(JLabel label) {
         label.setFont(FONT_SUB_HEADER);
         label.setForeground(COLOR_GRAY_DARKEST);
     }
 
-    /**
-     * Styles a standard form label (e.g., "Username:").
-     * @param label The JLabel to style.
-     */
     public static void styleLabel(JLabel label) {
         label.setFont(FONT_LABEL);
         label.setForeground(COLOR_GRAY_DARK);
     }
 
-    /**
-     * Styles a text field with padding and a modern border.
-     */
     public static void styleTextField(JComponent field) {
         field.setFont(FONT_BODY);
         field.setBorder(BorderFactory.createCompoundBorder(
@@ -140,9 +102,6 @@ public class UITheme {
         ));
     }
 
-    /**
-     * Styles a maintenance mode banner.
-     */
     public static void styleMaintenanceBanner(JLabel banner) {
         banner.setBackground(COLOR_YELLOW_WARNING);
         banner.setForeground(COLOR_TEXT_DARK);
@@ -150,9 +109,6 @@ public class UITheme {
         banner.setOpaque(true);
     }
 
-    /**
-     * Styles a JTable and its container.
-     */
     public static void styleTable(JScrollPane scrollPane) {
         JTable table = (JTable) scrollPane.getViewport().getView();
         table.setFont(FONT_BODY);
@@ -164,15 +120,9 @@ public class UITheme {
         scrollPane.setBorder(BorderFactory.createLineBorder(new Color(200, 200, 200)));
     }
 
-    /**
-     * Sets up the FlatLaf Light Look and Feel and global font settings.
-     * This should be called once in Main.java.
-     */
     public static void setupFlatLaf() {
         try {
             com.formdev.flatlaf.FlatLightLaf.setup();
-
-            // Set the global font to Segoe UI (or Geneva, etc.)
             UIManager.put("defaultFont", FONT_BODY);
         } catch( Exception ex ) {
             System.err.println( "Failed to initialize LaF. Using default." );
