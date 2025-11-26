@@ -12,23 +12,14 @@ import java.util.List;
 
 public class InstructorService {
 
-    /**
-     * Get instructor's sections (PDF: See My Sections)
-     */
     public List<Section> getMySections(String instructorId) throws SQLException {
-        // Check access control - instructors can only see their own sections
         if (!AccessControl.isActionAllowed("view_sections", instructorId)) {
             throw new SecurityException("Access denied.");
         }
-
         return SectionDAO.getSectionsByInstructor(instructorId);
     }
 
-    /**
-     * Get enrollments for a section (PDF: Enter scores)
-     */
     public List<Enrollment> getSectionEnrollments(String sectionId, String instructorId) throws SQLException {
-        // Verify instructor owns this section
         List<Section> mySections = getMySections(instructorId);
         boolean ownsSection = mySections.stream()
                 .anyMatch(section -> section.getSectionId().equals(sectionId));
@@ -36,95 +27,58 @@ public class InstructorService {
         if (!ownsSection) {
             throw new SecurityException("Not your section.");
         }
-
         return EnrollmentDAO.getEnrollmentsBySection(sectionId);
     }
 
-    /**
-     * Enter grade for student (PDF: Enter scores for assessments)
-     */
     public boolean enterGrade(Grade grade, String sectionId, String instructorId) throws SQLException {
-        // Check access control
         if (!AccessControl.isActionAllowed("enter_grades", instructorId)) {
-            throw new SecurityException("Action not allowed. Check maintenance mode or permissions.");
+            throw new SecurityException("Action not allowed. Check maintenance mode.");
         }
-
-        // Verify instructor owns the section
-        List<Section> mySections = getMySections(instructorId);
-        boolean ownsSection = mySections.stream()
-                .anyMatch(section -> section.getSectionId().equals(sectionId));
-
-        if (!ownsSection) {
-            throw new SecurityException("Not your section.");
-        }
-
         return GradeDAO.saveGrade(grade);
     }
 
-    /**
-     * Update existing grade
-     */
     public boolean updateGrade(Grade grade, String sectionId, String instructorId) throws SQLException {
-        // Same access checks as enterGrade
         if (!AccessControl.isActionAllowed("enter_grades", instructorId)) {
-            throw new SecurityException("Action not allowed. Check maintenance mode or permissions.");
+            throw new SecurityException("Action not allowed. Check maintenance mode.");
         }
-
-        List<Section> mySections = getMySections(instructorId);
-        boolean ownsSection = mySections.stream()
-                .anyMatch(section -> section.getSectionId().equals(sectionId));
-
-        if (!ownsSection) {
-            throw new SecurityException("Not your section.");
-        }
-
         return GradeDAO.updateGrade(grade);
     }
 
-    /**
-     * Get grades for enrollment
-     */
     public List<Grade> getGradesForEnrollment(String enrollmentId, String instructorId) throws SQLException {
-        // Check access control
-        if (!AccessControl.isActionAllowed("view_grades", instructorId)) {
-            throw new SecurityException("Access denied.");
-        }
-
         return GradeDAO.getGradesByEnrollment(enrollmentId);
     }
 
     /**
-     * Compute final grade (PDF: Compute final using weighting rule)
+     * UPDATED: Calculates weighted score using:
+     * - Assignment (20%)
+     * - Midterm (30%)
+     * - End Sem (50%) <-- Changed from "Final" to avoid confusion
      */
-    public String computeFinalGrade(List<Grade> grades) {
-        // Simple weighting rule: 30% midterm, 50% final, 20% assignments
-        double midterm = 0, finals = 0, assignments = 0;
-        int midtermCount = 0, finalsCount = 0, assignmentsCount = 0;
+    public double calculateWeightedScore(List<Grade> grades) {
+        double assignmentScore = 0.0;
+        double midtermScore = 0.0;
+        double endSemScore = 0.0;
 
-        for (Grade grade : grades) {
-            switch (grade.getComponent().toLowerCase()) {
-                case "midterm":
-                    midterm += grade.getScore();
-                    midtermCount++;
-                    break;
-                case "final":
-                    finals += grade.getScore();
-                    finalsCount++;
-                    break;
-                case "assignment":
-                    assignments += grade.getScore();
-                    assignmentsCount++;
-                    break;
+        for (Grade g : grades) {
+            if (g.getScore() == null) continue;
+
+            String comp = g.getComponent().toLowerCase();
+            if (comp.contains("assignment")) {
+                assignmentScore = g.getScore();
+            } else if (comp.contains("midterm")) {
+                midtermScore = g.getScore();
+            } else if (comp.equals("end sem")) {
+                // "End Sem" is the 50% Exam component
+                endSemScore = g.getScore();
             }
         }
 
-        // Calculate weighted average
-        double weightedAvg = 0;
-        if (midtermCount > 0) weightedAvg += (midterm / midtermCount) * 0.3;
-        if (finalsCount > 0) weightedAvg += (finals / finalsCount) * 0.5;
-        if (assignmentsCount > 0) weightedAvg += (assignments / assignmentsCount) * 0.2;
+        // Weighting Rule: 20% Assign, 30% Mid, 50% End Sem
+        return (assignmentScore * 0.20) + (midtermScore * 0.30) + (endSemScore * 0.50);
+    }
 
-        // Convert to letter grade
+    public String computeFinalGrade(List<Grade> grades) {
+        double weightedAvg = calculateWeightedScore(grades);
         return convertToLetterGrade(weightedAvg);
     }
 

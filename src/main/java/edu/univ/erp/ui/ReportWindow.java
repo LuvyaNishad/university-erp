@@ -12,8 +12,7 @@ import java.awt.*;
 import java.util.List;
 
 /**
- * A window for instructors to view simple reports and statistics for their sections.
- * This is for the "Reports" button.
+ * A window for instructors to view simple reports and statistics.
  */
 public class ReportWindow extends JDialog {
 
@@ -26,7 +25,7 @@ public class ReportWindow extends JDialog {
     public ReportWindow(JFrame owner) {
         super(owner, "Class Reports", true);
         this.instructorService = new InstructorService();
-        this.gradeService = new GradeService(); // For calculating averages
+        this.gradeService = new GradeService();
 
         setSize(600, 400);
         setLocationRelativeTo(owner);
@@ -41,7 +40,6 @@ public class ReportWindow extends JDialog {
         mainPanel.setBorder(UITheme.BORDER_PADDING_DIALOG);
         mainPanel.setBackground(UITheme.COLOR_BACKGROUND);
 
-        // --- Top Panel (Selector) ---
         JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         topPanel.setBackground(UITheme.COLOR_BACKGROUND);
         JLabel selectLabel = new JLabel("Select a Section:");
@@ -52,7 +50,6 @@ public class ReportWindow extends JDialog {
         topPanel.add(sectionComboBox);
         mainPanel.add(topPanel, BorderLayout.NORTH);
 
-        // --- Center: Stats Panel ---
         JPanel statsPanel = new JPanel();
         statsPanel.setLayout(new BoxLayout(statsPanel, BoxLayout.Y_AXIS));
         statsPanel.setBackground(UITheme.COLOR_WHITE);
@@ -73,7 +70,6 @@ public class ReportWindow extends JDialog {
 
         mainPanel.add(statsPanel, BorderLayout.CENTER);
 
-        // --- Bottom: Button Panel ---
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         buttonPanel.setBackground(UITheme.COLOR_BACKGROUND);
         JButton closeButton = new JButton("Close");
@@ -82,16 +78,12 @@ public class ReportWindow extends JDialog {
         buttonPanel.add(closeButton);
         mainPanel.add(buttonPanel, BorderLayout.SOUTH);
 
-        // --- Action Listeners ---
         closeButton.addActionListener(e -> dispose());
         sectionComboBox.addActionListener(e -> loadReportData());
 
         add(mainPanel);
     }
 
-    /**
-     * Loads the instructor's sections into the combo box.
-     */
     private void loadSections() {
         try {
             String instructorId = AuthService.getCurrentUserId();
@@ -107,9 +99,6 @@ public class ReportWindow extends JDialog {
         }
     }
 
-    /**
-     * Loads statistics for the selected section.
-     */
     private void loadReportData() {
         SectionItem selectedItem = (SectionItem) sectionComboBox.getSelectedItem();
         if (selectedItem == null || selectedItem.section == null) {
@@ -132,8 +121,8 @@ public class ReportWindow extends JDialog {
             for (Enrollment en : enrollments) {
                 List<Grade> grades = gradeService.getGradesByEnrollment(en.getEnrollmentId());
                 for (Grade g : grades) {
-                    // Calculate average of "final" components only
-                    if ("final".equalsIgnoreCase(g.getComponent()) && g.getScore() != null) {
+                    // Calculate average of "final" components only (numerical score)
+                    if ("final".equalsIgnoreCase(g.getComponent()) && g.getScore() != null && g.getScore() > 0) {
                         totalScore += g.getScore();
                         gradeCount++;
                         break; // Only count one "final" grade per student
@@ -145,7 +134,7 @@ public class ReportWindow extends JDialog {
                 double average = totalScore / gradeCount;
                 avgGradeLabel.setText(String.format("Class Average (Finals): %.2f", average));
             } else {
-                avgGradeLabel.setText("Class Average (Finals): N/A (No final grades entered)");
+                avgGradeLabel.setText("Class Average (Finals): 0.00");
             }
 
         } catch (Exception e) {
@@ -153,7 +142,6 @@ public class ReportWindow extends JDialog {
         }
     }
 
-    // Helper class to store Section object in JComboBox
     private static class SectionItem {
         Section section;
         String displayValue;

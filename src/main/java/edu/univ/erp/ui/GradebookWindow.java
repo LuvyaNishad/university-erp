@@ -69,12 +69,10 @@ public class GradebookWindow extends JDialog {
         JPanel bottomPanel = new JPanel(new BorderLayout());
         bottomPanel.setBackground(UITheme.COLOR_BACKGROUND);
 
-        // --- Import Button ---
         JButton importButton = new JButton("Import CSV");
         UITheme.styleSecondaryButton(importButton);
         importButton.setPreferredSize(new Dimension(120, 40));
 
-        // --- Export Button (Added) ---
         JButton exportButton = new JButton("Export CSV");
         UITheme.styleSecondaryButton(exportButton);
         exportButton.setPreferredSize(new Dimension(120, 40));
@@ -96,7 +94,7 @@ public class GradebookWindow extends JDialog {
         buttonContainer.setBackground(UITheme.COLOR_BACKGROUND);
 
         buttonContainer.add(importButton);
-        buttonContainer.add(exportButton); // Export button added here
+        buttonContainer.add(exportButton);
         buttonContainer.add(computeFinalButton);
         buttonContainer.add(saveButton);
         buttonContainer.add(closeButton);
@@ -110,7 +108,7 @@ public class GradebookWindow extends JDialog {
         saveButton.addActionListener(e -> saveGrades());
         computeFinalButton.addActionListener(e -> computeFinalGrades());
         importButton.addActionListener(e -> handleImportCSV());
-        exportButton.addActionListener(e -> handleExportCSV()); // Action listener for Export
+        exportButton.addActionListener(e -> handleExportCSV());
 
         add(mainPanel);
     }
@@ -145,7 +143,8 @@ public class GradebookWindow extends JDialog {
             tableModel.setRowCount(0);
             gradeCache.clear();
 
-            String[] requiredComponents = {"Midterm", "Assignment", "Final"};
+            // UPDATED COMPONENTS: Now includes "End Sem" for input and "FINAL" for output
+            String[] requiredComponents = {"Midterm", "Assignment", "End Sem", "FINAL"};
 
             for (Enrollment en : currentEnrollments) {
                 List<Grade> grades = gradeService.getGradesByEnrollment(en.getEnrollmentId());
@@ -200,11 +199,9 @@ public class GradebookWindow extends JDialog {
                 int importedCount = 0;
 
                 while ((line = br.readLine()) != null) {
-                    if (line.startsWith("\uFEFF")) {
-                        line = line.substring(1);
-                    }
-
+                    if (line.startsWith("\uFEFF")) line = line.substring(1);
                     if (isHeader) { isHeader = false; continue; }
+
                     String[] parts = line.split(",");
                     if (parts.length < 3) continue;
 
@@ -223,7 +220,6 @@ public class GradebookWindow extends JDialog {
         }
     }
 
-    // --- Export CSV Implementation ---
     private void handleExportCSV() {
         SectionItem selectedItem = (SectionItem) sectionComboBox.getSelectedItem();
         if (selectedItem == null || selectedItem.section == null) {
@@ -258,7 +254,6 @@ public class GradebookWindow extends JDialog {
                     writer.append(score).append(",");
                     writer.append(finalGrade).append("\n");
                 }
-
                 JOptionPane.showMessageDialog(this, "Export Successful!", "Success", JOptionPane.INFORMATION_MESSAGE);
             } catch (Exception ex) {
                 JOptionPane.showMessageDialog(this, "Export Failed: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
@@ -335,24 +330,32 @@ public class GradebookWindow extends JDialog {
 
         try {
             String instructorId = AuthService.getCurrentUserId();
+            String sectionId = ((SectionItem) sectionComboBox.getSelectedItem()).section.getSectionId();
+
             for (Enrollment en : currentEnrollments) {
+                // 1. Get all grades for this student
                 List<Grade> grades = gradeService.getGradesByEnrollment(en.getEnrollmentId());
+
+                // 2. Calculate weighted numerical score
+                double weightedScore = instructorService.calculateWeightedScore(grades);
+
+                // 3. Convert to Letter Grade
                 String letterGrade = instructorService.computeFinalGrade(grades);
 
+                // 4. Find OR Create the "FINAL" row (distinct from "End Sem")
                 Grade finalGradeEntry = grades.stream()
-                        .filter(g -> "final".equalsIgnoreCase(g.getComponent()))
+                        .filter(g -> "FINAL".equalsIgnoreCase(g.getComponent()))
                         .findFirst().orElse(null);
 
-                String sectionId = ((SectionItem) sectionComboBox.getSelectedItem()).section.getSectionId();
-
                 if (finalGradeEntry != null) {
+                    finalGradeEntry.setScore(weightedScore); // Save weighted score here for reporting
                     finalGradeEntry.setFinalGrade(letterGrade);
                     instructorService.updateGrade(finalGradeEntry, sectionId, instructorId);
                 } else {
                     Grade newFinalGrade = new Grade();
                     newFinalGrade.setEnrollmentId(en.getEnrollmentId());
-                    newFinalGrade.setComponent("Final");
-                    newFinalGrade.setScore(0.0);
+                    newFinalGrade.setComponent("FINAL");
+                    newFinalGrade.setScore(weightedScore);
                     newFinalGrade.setFinalGrade(letterGrade);
                     instructorService.enterGrade(newFinalGrade, sectionId, instructorId);
                 }
