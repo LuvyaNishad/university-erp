@@ -14,7 +14,7 @@ import java.awt.*;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
-import java.util.ArrayList;
+import java.io.FileWriter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -69,9 +69,15 @@ public class GradebookWindow extends JDialog {
         JPanel bottomPanel = new JPanel(new BorderLayout());
         bottomPanel.setBackground(UITheme.COLOR_BACKGROUND);
 
+        // --- Import Button ---
         JButton importButton = new JButton("Import CSV");
         UITheme.styleSecondaryButton(importButton);
         importButton.setPreferredSize(new Dimension(120, 40));
+
+        // --- Export Button (Added) ---
+        JButton exportButton = new JButton("Export CSV");
+        UITheme.styleSecondaryButton(exportButton);
+        exportButton.setPreferredSize(new Dimension(120, 40));
 
         JButton saveButton = new JButton("Save All Grades");
         UITheme.stylePrimaryButton(saveButton);
@@ -88,10 +94,13 @@ public class GradebookWindow extends JDialog {
 
         JPanel buttonContainer = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         buttonContainer.setBackground(UITheme.COLOR_BACKGROUND);
+
         buttonContainer.add(importButton);
+        buttonContainer.add(exportButton); // Export button added here
         buttonContainer.add(computeFinalButton);
         buttonContainer.add(saveButton);
         buttonContainer.add(closeButton);
+
         bottomPanel.add(buttonContainer, BorderLayout.EAST);
 
         mainPanel.add(bottomPanel, BorderLayout.SOUTH);
@@ -101,6 +110,7 @@ public class GradebookWindow extends JDialog {
         saveButton.addActionListener(e -> saveGrades());
         computeFinalButton.addActionListener(e -> computeFinalGrades());
         importButton.addActionListener(e -> handleImportCSV());
+        exportButton.addActionListener(e -> handleExportCSV()); // Action listener for Export
 
         add(mainPanel);
     }
@@ -141,7 +151,6 @@ public class GradebookWindow extends JDialog {
                 List<Grade> grades = gradeService.getGradesByEnrollment(en.getEnrollmentId());
                 gradeCache.put(en.getEnrollmentId(), grades);
 
-                // FIX: Ensure ALL components are displayed, creating empty rows if data is missing
                 for (String comp : requiredComponents) {
                     Grade existing = grades.stream()
                             .filter(g -> g.getComponent().equalsIgnoreCase(comp))
@@ -191,7 +200,6 @@ public class GradebookWindow extends JDialog {
                 int importedCount = 0;
 
                 while ((line = br.readLine()) != null) {
-                    // Remove BOM if present
                     if (line.startsWith("\uFEFF")) {
                         line = line.substring(1);
                     }
@@ -215,6 +223,49 @@ public class GradebookWindow extends JDialog {
         }
     }
 
+    // --- Export CSV Implementation ---
+    private void handleExportCSV() {
+        SectionItem selectedItem = (SectionItem) sectionComboBox.getSelectedItem();
+        if (selectedItem == null || selectedItem.section == null) {
+            JOptionPane.showMessageDialog(this, "No grades to export. Select a section first.", "Info", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setDialogTitle("Export Grades to CSV");
+        fileChooser.setSelectedFile(new File("grades_export.csv"));
+        fileChooser.setFileFilter(new FileNameExtensionFilter("CSV Files", "csv"));
+
+        if (fileChooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
+            try (FileWriter writer = new FileWriter(fileChooser.getSelectedFile())) {
+                writer.append("Student ID,Student Name,Component,Score,Final Grade\n");
+
+                for (int i = 0; i < tableModel.getRowCount(); i++) {
+                    String studentId = (String) tableModel.getValueAt(i, 0);
+                    if (studentId == null || studentId.equals("---")) continue;
+
+                    String name = (String) tableModel.getValueAt(i, 1);
+                    String component = (String) tableModel.getValueAt(i, 2);
+                    Object scoreObj = tableModel.getValueAt(i, 3);
+                    Object finalGradeObj = tableModel.getValueAt(i, 4);
+
+                    String score = scoreObj != null ? scoreObj.toString() : "0.0";
+                    String finalGrade = finalGradeObj != null ? finalGradeObj.toString() : "N/A";
+
+                    writer.append(studentId).append(",");
+                    writer.append("\"").append(name).append("\",");
+                    writer.append(component).append(",");
+                    writer.append(score).append(",");
+                    writer.append(finalGrade).append("\n");
+                }
+
+                JOptionPane.showMessageDialog(this, "Export Successful!", "Success", JOptionPane.INFORMATION_MESSAGE);
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, "Export Failed: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
+
     private boolean updateTableModel(String studentId, String component, double score) {
         boolean updated = false;
         for (int i = 0; i < tableModel.getRowCount(); i++) {
@@ -223,7 +274,7 @@ public class GradebookWindow extends JDialog {
 
             if (rowStudentId != null && rowStudentId.equalsIgnoreCase(studentId) &&
                     rowComponent != null && rowComponent.equalsIgnoreCase(component)) {
-                tableModel.setValueAt(score, i, 3); // Update score column
+                tableModel.setValueAt(score, i, 3);
                 updated = true;
             }
         }

@@ -9,7 +9,6 @@ import edu.univ.erp.service.StudentService;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
-import java.io.FileWriter;
 import java.util.List;
 
 public class TranscriptWindow extends JDialog {
@@ -55,20 +54,16 @@ public class TranscriptWindow extends JDialog {
         JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         bottomPanel.setBackground(UITheme.COLOR_BACKGROUND);
 
-        JButton exportButton = new JButton("Export CSV");
-        UITheme.stylePrimaryButton(exportButton);
-        exportButton.setPreferredSize(new Dimension(150, 40));
+        // EXPORT BUTTON REMOVED
 
         JButton closeButton = new JButton("Close");
         UITheme.styleSecondaryButton(closeButton);
         closeButton.setPreferredSize(new Dimension(100, 40));
 
-        bottomPanel.add(exportButton);
         bottomPanel.add(closeButton);
         mainPanel.add(bottomPanel, BorderLayout.SOUTH);
 
         closeButton.addActionListener(e -> dispose());
-        exportButton.addActionListener(e -> handleExport());
 
         add(mainPanel);
     }
@@ -97,41 +92,6 @@ public class TranscriptWindow extends JDialog {
             }
         } catch (Exception e) {
             JOptionPane.showMessageDialog(this, "Error loading transcript: " + e.getMessage());
-        }
-    }
-
-    private void handleExport() {
-        if (enrollments == null || enrollments.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "No data to export.", "Info", JOptionPane.INFORMATION_MESSAGE);
-            return;
-        }
-
-        JFileChooser fileChooser = new JFileChooser();
-        fileChooser.setDialogTitle("Save Transcript as CSV");
-        fileChooser.setSelectedFile(new java.io.File("transcript.csv"));
-
-        if (fileChooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
-            try (FileWriter writer = new FileWriter(fileChooser.getSelectedFile())) {
-                // --- ROBUST CSV LOGIC (QUOTED FIELDS) ---
-                writer.append("\"Course Code\",\"Course Title\",\"Final Score\",\"Grade\"\n");
-
-                for (int i = 0; i < tableModel.getRowCount(); i++) {
-                    String code = (String) tableModel.getValueAt(i, 0);
-                    String title = (String) tableModel.getValueAt(i, 1);
-                    String score = (String) tableModel.getValueAt(i, 2);
-                    String grade = (String) tableModel.getValueAt(i, 3);
-
-                    // This handles commas inside titles, ensuring data integrity
-                    writer.append("\"").append(code).append("\",");
-                    writer.append("\"").append(title).append("\",");
-                    writer.append("\"").append(score).append("\",");
-                    writer.append("\"").append(grade).append("\"\n");
-                }
-
-                JOptionPane.showMessageDialog(this, "Export successful!");
-            } catch (Exception ex) {
-                JOptionPane.showMessageDialog(this, "Export failed: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
-            }
         }
     }
 }
