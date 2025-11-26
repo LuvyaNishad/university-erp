@@ -10,10 +10,6 @@ import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.util.List;
 
-/**
- * A window for Admins to create new sections and assign instructors.
- * This passes the test: "[ ] ...and a section; assign instructor."
- */
 public class SectionManagementWindow extends JDialog {
 
     private AdminService adminService;
@@ -47,27 +43,21 @@ public class SectionManagementWindow extends JDialog {
         UITheme.styleSubHeaderLabel(titleLabel);
         mainPanel.add(titleLabel, BorderLayout.NORTH);
 
-        // --- Center: Table of existing sections ---
         String[] columnNames = {"Section ID", "Course", "Instructor", "Schedule", "Capacity"};
         tableModel = new DefaultTableModel(columnNames, 0) {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return false;
-            }
+            @Override public boolean isCellEditable(int row, int column) { return false; }
         };
         sectionsTable = new JTable(tableModel);
         JScrollPane scrollPane = new JScrollPane(sectionsTable);
         UITheme.styleTable(scrollPane);
         mainPanel.add(scrollPane, BorderLayout.CENTER);
 
-        // --- Bottom: Form for new section ---
         JPanel formPanel = new JPanel(new GridLayout(4, 4, 10, 10));
         formPanel.setBackground(UITheme.COLOR_WHITE);
         formPanel.setBorder(BorderFactory.createTitledBorder("Create New Section"));
 
         formPanel.add(new JLabel("Section ID (e.g., 'SEC003'):"));
-        sectionIdField = new JTextField();
-        UITheme.styleTextField(sectionIdField);
+        sectionIdField = new JTextField(); UITheme.styleTextField(sectionIdField);
         formPanel.add(sectionIdField);
 
         formPanel.add(new JLabel("Select Course:"));
@@ -79,33 +69,27 @@ public class SectionManagementWindow extends JDialog {
         formPanel.add(instructorComboBox);
 
         formPanel.add(new JLabel("Schedule (e.g., 'Mon 1-2:30'):"));
-        dayTimeField = new JTextField();
-        UITheme.styleTextField(dayTimeField);
+        dayTimeField = new JTextField(); UITheme.styleTextField(dayTimeField);
         formPanel.add(dayTimeField);
 
         formPanel.add(new JLabel("Room (e.g., 'R103'):"));
-        roomField = new JTextField();
-        UITheme.styleTextField(roomField);
+        roomField = new JTextField(); UITheme.styleTextField(roomField);
         formPanel.add(roomField);
 
         formPanel.add(new JLabel("Capacity (e.g., 30):"));
-        capacityField = new JTextField();
-        UITheme.styleTextField(capacityField);
+        capacityField = new JTextField(); UITheme.styleTextField(capacityField);
         formPanel.add(capacityField);
 
         formPanel.add(new JLabel("Semester (e.g., 'Fall'):"));
-        semesterField = new JTextField();
-        UITheme.styleTextField(semesterField);
+        semesterField = new JTextField(); UITheme.styleTextField(semesterField);
         formPanel.add(semesterField);
 
         formPanel.add(new JLabel("Year (e.g., 2024):"));
-        yearField = new JTextField();
-        UITheme.styleTextField(yearField);
+        yearField = new JTextField(); UITheme.styleTextField(yearField);
         formPanel.add(yearField);
 
         mainPanel.add(formPanel, BorderLayout.SOUTH);
 
-        // --- Button Panel (Right) ---
         JPanel buttonPanel = new JPanel();
         buttonPanel.setLayout(new BoxLayout(buttonPanel, BoxLayout.Y_AXIS));
         buttonPanel.setBackground(UITheme.COLOR_BACKGROUND);
@@ -126,7 +110,6 @@ public class SectionManagementWindow extends JDialog {
         buttonPanel.add(closeButton);
         mainPanel.add(buttonPanel, BorderLayout.EAST);
 
-        // --- Action Listeners ---
         closeButton.addActionListener(e -> dispose());
         createButton.addActionListener(e -> handleCreateSection());
 
@@ -135,20 +118,14 @@ public class SectionManagementWindow extends JDialog {
 
     private void loadData() {
         try {
-            // Load sections for table
             List<Section> sections = adminService.getAllSections();
             tableModel.setRowCount(0);
             for (Section s : sections) {
                 tableModel.addRow(new Object[]{
-                        s.getSectionId(),
-                        s.getCourseTitle(), // Assumes SectionDAO joins this
-                        s.getInstructorName(), // Assumes SectionDAO joins this
-                        s.getDayTime(),
-                        s.getCapacity()
+                        s.getSectionId(), s.getCourseTitle(), s.getInstructorName(), s.getDayTime(), s.getCapacity()
                 });
             }
 
-            // Load courses for combo box
             this.courseList = adminService.getAllCourses();
             courseComboBox.removeAllItems();
             courseComboBox.addItem(new CourseItem(null, "--- Select Course ---"));
@@ -156,12 +133,10 @@ public class SectionManagementWindow extends JDialog {
                 courseComboBox.addItem(new CourseItem(c, c.getTitle()));
             }
 
-            // Load instructors for combo box
             this.instructorList = adminService.getAllInstructors();
             instructorComboBox.removeAllItems();
             instructorComboBox.addItem(new InstructorItem(null, "--- Select Instructor ---"));
             for (Instructor i : instructorList) {
-                // Assuming Instructor.toString() is reasonable, or use a custom renderer
                 instructorComboBox.addItem(new InstructorItem(i, i.getUserId() + " (" + i.getDepartment() + ")"));
             }
 
@@ -177,10 +152,17 @@ public class SectionManagementWindow extends JDialog {
             section.setDayTime(dayTimeField.getText().trim());
             section.setRoom(roomField.getText().trim());
             section.setSemester(semesterField.getText().trim());
-            section.setCapacity(Integer.parseInt(capacityField.getText().trim()));
+
+            // FIX: Validate Capacity
+            int capacity = Integer.parseInt(capacityField.getText().trim());
+            if (capacity < 0) {
+                showError("Capacity cannot be negative.");
+                return;
+            }
+            section.setCapacity(capacity);
+
             section.setYear(Integer.parseInt(yearField.getText().trim()));
 
-            // Get selected course and instructor
             CourseItem selectedCourse = (CourseItem) courseComboBox.getSelectedItem();
             InstructorItem selectedInstructor = (InstructorItem) instructorComboBox.getSelectedItem();
 
@@ -197,14 +179,9 @@ public class SectionManagementWindow extends JDialog {
             boolean success = adminService.createSection(section);
             if (success) {
                 JOptionPane.showMessageDialog(this, "Section created successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
-                loadData(); // Refresh table
-                // Clear fields
-                sectionIdField.setText("");
-                dayTimeField.setText("");
-                roomField.setText("");
-                capacityField.setText("");
-                semesterField.setText("");
-                yearField.setText("");
+                loadData();
+                sectionIdField.setText(""); dayTimeField.setText(""); roomField.setText("");
+                capacityField.setText(""); semesterField.setText(""); yearField.setText("");
             } else {
                 showError("Failed to create section. Check if Section ID already exists.");
             }
@@ -219,7 +196,6 @@ public class SectionManagementWindow extends JDialog {
         JOptionPane.showMessageDialog(this, message, "Error", JOptionPane.ERROR_MESSAGE);
     }
 
-    // Helper classes for ComboBox
     private static class CourseItem {
         Course course;
         String displayValue;

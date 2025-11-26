@@ -6,12 +6,12 @@ import edu.univ.erp.service.StudentService;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableRowSorter;
 import java.awt.*;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
 import java.util.List;
 
-/**
- * A window for students to browse and register for courses.
- */
 public class CourseCatalogWindow extends JDialog {
 
     private JTable courseTable;
@@ -19,12 +19,14 @@ public class CourseCatalogWindow extends JDialog {
     private StudentService studentService;
     private List<Section> sectionList;
     private JLabel statusLabel;
+    private JTextField searchField;
+    private TableRowSorter<DefaultTableModel> sorter;
 
     public CourseCatalogWindow(JFrame owner) {
         super(owner, "Course Catalog & Registration", true);
         this.studentService = new StudentService();
 
-        setSize(900, 600);
+        setSize(1000, 600);
         setLocationRelativeTo(owner);
         setLayout(new BorderLayout(10, 10));
 
@@ -37,25 +39,55 @@ public class CourseCatalogWindow extends JDialog {
         mainPanel.setBorder(UITheme.BORDER_PADDING_DIALOG);
         mainPanel.setBackground(UITheme.COLOR_BACKGROUND);
 
+        // --- Top Panel: Title + Search ---
+        JPanel topPanel = new JPanel(new BorderLayout(10, 0));
+        topPanel.setBackground(UITheme.COLOR_BACKGROUND);
+
         JLabel titleLabel = new JLabel("Course Catalog");
         UITheme.styleSubHeaderLabel(titleLabel);
-        titleLabel.setBorder(BorderFactory.createEmptyBorder(0, 0, 10, 0));
-        mainPanel.add(titleLabel, BorderLayout.NORTH);
+        topPanel.add(titleLabel, BorderLayout.WEST);
+
+        // FIX: Added Search Bar
+        JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        searchPanel.setBackground(UITheme.COLOR_BACKGROUND);
+        searchPanel.add(new JLabel("Search:"));
+        searchField = new JTextField(20);
+        UITheme.styleTextField(searchField);
+        searchField.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyReleased(KeyEvent e) {
+                filterTable();
+            }
+        });
+        searchPanel.add(searchField);
+        topPanel.add(searchPanel, BorderLayout.EAST);
+
+        mainPanel.add(topPanel, BorderLayout.NORTH);
 
         // --- Center: Table ---
-        String[] columnNames = {"Section ID", "Course", "Title", "Credits", "Instructor", "Schedule", "Room", "Seats (Filled/Total)"};
+        String[] columnNames = {"Section ID", "Course", "Title", "Credits", "Instructor", "Schedule", "Room", "Seats"};
         tableModel = new DefaultTableModel(columnNames, 0) {
             @Override
-            public boolean isCellEditable(int row, int column) {
-                return false; // Make table read-only
+            public boolean isCellEditable(int row, int column) { return false; }
+            // Fix sorting for integer columns
+            @Override
+            public Class<?> getColumnClass(int columnIndex) {
+                if (columnIndex == 3) return Integer.class; // Credits
+                return String.class;
             }
         };
+
         courseTable = new JTable(tableModel);
+
+        // FIX: Enable Sorting
+        sorter = new TableRowSorter<>(tableModel);
+        courseTable.setRowSorter(sorter);
+
         JScrollPane scrollPane = new JScrollPane(courseTable);
         UITheme.styleTable(scrollPane);
         mainPanel.add(scrollPane, BorderLayout.CENTER);
 
-        // --- Bottom: Button Panel ---
+        // --- Bottom Panel ---
         JPanel bottomPanel = new JPanel(new BorderLayout(10, 0));
         bottomPanel.setBackground(UITheme.COLOR_BACKGROUND);
 
@@ -63,9 +95,9 @@ public class CourseCatalogWindow extends JDialog {
         statusLabel.setFont(UITheme.FONT_BODY);
         bottomPanel.add(statusLabel, BorderLayout.WEST);
 
-        JButton registerButton = new JButton("Register for Selected Section");
+        JButton registerButton = new JButton("Register");
         UITheme.stylePrimaryButton(registerButton);
-        registerButton.setPreferredSize(new Dimension(250, 40));
+        registerButton.setPreferredSize(new Dimension(150, 40));
 
         JButton closeButton = new JButton("Close");
         UITheme.styleSecondaryButton(closeButton);
@@ -79,41 +111,37 @@ public class CourseCatalogWindow extends JDialog {
         bottomPanel.add(buttonContainer, BorderLayout.EAST);
         mainPanel.add(bottomPanel, BorderLayout.SOUTH);
 
-        // --- Action Listeners ---
         closeButton.addActionListener(e -> dispose());
         registerButton.addActionListener(e -> handleRegister());
 
         add(mainPanel);
     }
 
-    /**
-     * Loads all available sections from the database into the table.
-     */
+    private void filterTable() {
+        String text = searchField.getText();
+        if (text.trim().length() == 0) {
+            sorter.setRowFilter(null);
+        } else {
+            sorter.setRowFilter(RowFilter.regexFilter("(?i)" + text));
+        }
+    }
+
     private void loadCourseData() {
         try {
-            // This service method gets all sections and their details
             this.sectionList = studentService.getAvailableSections();
-
-            // Clear existing data
             tableModel.setRowCount(0);
 
             for (Section s : sectionList) {
-                // The service layer populates current enrollment in getCapacity()
-                // and total capacity in getYear() (a temporary fix from your service)
-                // Let's assume StudentService.getAvailableSections() is fixed
-                // to populate s.getCurrentEnrollment() and s.getCapacity() correctly.
-
-                // We'll call the DAO directly for a clean implementation
                 int currentEnrollment = edu.univ.erp.data.SectionDAO.getCurrentEnrollment(s.getSectionId());
-                int totalCapacity = s.getCapacity(); // Get the real capacity
+                int totalCapacity = s.getCapacity();
                 String seats = currentEnrollment + " / " + totalCapacity;
 
                 tableModel.addRow(new Object[]{
                         s.getSectionId(),
-                        s.getCourseId(), // Using courseId as Course Code
+                        s.getCourseId(),
                         s.getCourseTitle(),
                         s.getCredits(),
-                        s.getInstructorName(), // Assumes SectionDAO joins this
+                        s.getInstructorName(),
                         s.getDayTime(),
                         s.getRoom(),
                         seats
@@ -122,38 +150,37 @@ public class CourseCatalogWindow extends JDialog {
             statusLabel.setText(sectionList.size() + " sections found.");
         } catch (Exception e) {
             statusLabel.setText("Error loading courses.");
-            JOptionPane.showMessageDialog(this, "Error loading courses: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Error: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
 
-    /**
-     * Handles the register button click.
-     */
     private void handleRegister() {
-        int selectedRow = courseTable.getSelectedRow();
-        if (selectedRow == -1) {
-            JOptionPane.showMessageDialog(this, "Please select a section from the table first.", "No Section Selected", JOptionPane.WARNING_MESSAGE);
+        int viewRow = courseTable.getSelectedRow();
+        if (viewRow == -1) {
+            JOptionPane.showMessageDialog(this, "Please select a section.", "No Section Selected", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
+        // Convert view index to model index due to sorting
+        int modelRow = courseTable.convertRowIndexToModel(viewRow);
+        String sectionId = (String) tableModel.getValueAt(modelRow, 0); // Get ID from table, safer than list index with sorting
+
         try {
             String studentId = AuthService.getCurrentUserId();
-            // Get the Section object from our list, not just the table
-            Section selectedSection = sectionList.get(selectedRow);
-            String sectionId = selectedSection.getSectionId();
+            // Find object for title display
+            Section selected = sectionList.stream().filter(s -> s.getSectionId().equals(sectionId)).findFirst().orElse(null);
 
-            // This service call handles all logic (full, duplicate, etc.)
             boolean success = studentService.registerForSection(studentId, sectionId);
 
             if (success) {
-                JOptionPane.showMessageDialog(this, "Successfully registered for " + selectedSection.getCourseTitle() + "!", "Registration Successful", JOptionPane.INFORMATION_MESSAGE);
-                loadCourseData(); // Refresh table to show new seat count
+                String title = (selected != null) ? selected.getCourseTitle() : "Course";
+                JOptionPane.showMessageDialog(this, "Successfully registered for " + title + "!", "Success", JOptionPane.INFORMATION_MESSAGE);
+                loadCourseData();
             } else {
-                showError("Registration failed for an unknown reason.");
+                showError("Registration failed.");
             }
 
         } catch (Exception e) {
-            // Catch errors from the service layer (e.g., "Section is full", "Already enrolled")
             showError(e.getMessage());
         }
     }

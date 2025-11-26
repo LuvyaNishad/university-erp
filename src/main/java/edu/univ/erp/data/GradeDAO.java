@@ -32,7 +32,7 @@ public class GradeDAO {
         String sql = "INSERT INTO grades (grade_id, enrollment_id, component, score, final_grade) VALUES (?, ?, ?, ?, ?)";
         try (Connection conn = DatabaseConnection.getErpConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
-            // FIX: Use UUID to prevent ID collision during bulk save loop
+            // FIX: Use UUID to prevent ID collision during bulk save
             String gradeId = "GRD_" + UUID.randomUUID().toString();
             stmt.setString(1, gradeId);
             stmt.setString(2, grade.getEnrollmentId());
